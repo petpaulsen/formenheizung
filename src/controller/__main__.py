@@ -19,7 +19,7 @@ class MainLoop:
         self._message_queue = asyncio.Queue()
         self._controller = Controller(
             config.getfloat('controller', 'sample_time'),
-            config.getint('controller', 'relais_steps_per_cycle')
+            config.getint('controller', 'relay_steps_per_cycle')
         )
 
     async def run(self):

@@ -10,7 +10,7 @@ class RaspberrySystem(SystemBase):
 
     def __init__(self):
         with open('/sys/devices/w1_bus_master1/w1_master_slaves') as file:
-            self._w1_slaves = [line for line in file.readlines()]
+            self._w1_slaves = [line.strip() for line in file.readlines()]
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(RaspberrySystem.RELAY_PIN_NUMBER, GPIO.OUT)
         atexit.register(GPIO.cleanup)

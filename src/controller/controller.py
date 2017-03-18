@@ -36,7 +36,7 @@ class Controller:
                         trajectory[:, 0],
                         trajectory[:, 1],
                         left=0, right=0)
-                    temperature = (read_temperature(0) + read_temperature(1)) / 2
+                    temperature = read_temperature(0)
 
                     onoff_ratio = self._calc_command_value(target_temperature, temperature)
                     self._relay.step(onoff_ratio)

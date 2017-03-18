@@ -10,16 +10,20 @@ class Controller:
         self._relais = Relais(relais_steps_per_cycle)
         self._sample_time = sample_time
         self._trajectory = asyncio.Queue(maxsize=1)
+        self._measurement = []
+        self._target_trajectory = []
 
     async def run(self):
         while True:
             while True:
-                trajectory = await self._trajectory.get()
-                if trajectory is not None:
+                target_trajectory = await self._trajectory.get()
+                if target_trajectory is not None:
                     break
-            trajectory = np.array(trajectory)
+            self._target_trajectory = target_trajectory
+            trajectory = np.array(target_trajectory)
             num_samples = int(trajectory[-1][0] / self._sample_time)
             current_time = 0.0
+            self._measurement = []
 
             try:
                 for t in range(num_samples):
@@ -37,6 +41,8 @@ class Controller:
                     onoff_ratio = self._calc_command_value(target_temperature, temperature)
                     self._relais.step(onoff_ratio)
 
+                    self._measurement.append((current_time, temperature, target_temperature, onoff_ratio))
+
                     current_time += self._sample_time
                     await asyncio.sleep(self._sample_time)
             finally:
@@ -46,5 +52,11 @@ class Controller:
     async def set_trajectory(self, trajectory):
         await self._trajectory.put(trajectory)
 
+    def get_measurement(self):
+        return self._measurement
+
+    def get_trajectory(self):
+        return self._target_trajectory
+
     def _calc_command_value(self, target_temperature, temperature):
-        raise NotImplementedError()
+        return 0.0 #raise NotImplementedError()

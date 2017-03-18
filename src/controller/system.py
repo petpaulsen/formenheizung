@@ -3,11 +3,11 @@ def init():
 
 
 def set_relay(value):
-    raise NotImplementedError()
+    pass #raise NotImplementedError()
 
 
 def read_temperature(index):
-    raise NotImplementedError()
+    return 10.0 #raise NotImplementedError()
 
 
 class Relais:

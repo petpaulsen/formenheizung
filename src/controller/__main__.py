@@ -41,6 +41,12 @@ class MainLoop:
                 logger.info('stopping controller')
                 await self._controller.set_trajectory(None)
                 await self._socket.send_json(None)
+            elif request['id'] == 'measurement':
+                #logger.info('getting measurement')
+                await self._socket.send_json(self._controller.get_measurement())
+            elif request['id'] == 'trajectory':
+                #logger.info('getting trajectory')
+                await self._socket.send_json(self._controller.get_trajectory())
             else:
                 await self._socket.send_json(ValueError())
         if not controller_task.cancelled():

@@ -5,6 +5,7 @@ import logging
 import zmq
 import zmq.asyncio
 
+import system
 from controller import Controller
 
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +20,7 @@ class MainLoop:
         self._message_queue = asyncio.Queue()
         self._controller = Controller(
             config.getfloat('controller', 'sample_time'),
+            config.getint('controller', 'temperature_refresh_rate'),
             config.getint('controller', 'relay_steps_per_cycle')
         )
 
@@ -58,12 +60,13 @@ def main():
     config.read('config.ini')
 
     loop = zmq.asyncio.ZMQEventLoop()
-    asyncio.set_event_loop(loop)
-
-    main_loop = MainLoop(config)
-
-    loop.run_until_complete(main_loop.run())
-    loop.close()
+    try:
+        asyncio.set_event_loop(loop)
+        main_loop = MainLoop(config)
+        loop.run_until_complete(main_loop.run())
+    finally:
+        loop.close()
+        system.shutdown()
 
 if __name__ == '__main__':
     main()

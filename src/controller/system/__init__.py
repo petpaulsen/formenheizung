@@ -5,6 +5,9 @@ class SystemBase:
     def read_temperature(self, index):
         raise NotImplementedError()
 
+    def shutdown(self):
+        pass
+
 
 class FakeSystem(SystemBase):
     def set_relay(self, value):
@@ -22,6 +25,7 @@ except ImportError:
 
 set_relay = system.set_relay
 read_temperature = system.read_temperature
+shutdown = system.shutdown
 
 
 class Relay:
@@ -30,7 +34,7 @@ class Relay:
         self._steps_per_cycle = steps_per_cycle
 
     def step(self, onoff_ratio):
-        set_relay(self._counter >= onoff_ratio * self._steps_per_cycle)
+        set_relay(self._counter < onoff_ratio * self._steps_per_cycle)
         self._counter += 1
         if self._counter >= self._steps_per_cycle:
             self._counter = 0

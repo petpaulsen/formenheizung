@@ -1,4 +1,5 @@
 import atexit
+from concurrent.futures import ThreadPoolExecutor
 
 import RPi.GPIO as GPIO
 
@@ -13,7 +14,7 @@ class RaspberrySystem(SystemBase):
             self._w1_slaves = [line.strip() for line in file.readlines()]
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(RaspberrySystem.RELAY_PIN_NUMBER, GPIO.OUT)
-        atexit.register(GPIO.cleanup)
+        self._workers = ThreadPoolExecutor()
 
     def set_relay(self, value):
         if value:
@@ -21,7 +22,14 @@ class RaspberrySystem(SystemBase):
         else:
             GPIO.output(RaspberrySystem.RELAY_PIN_NUMBER, GPIO.LOW)
 
-    def read_temperature(self, index):
+    def _read_temperature(self, index):
         with open('/sys/bus/w1/devices/{}/w1_slave'.format(self._w1_slaves[index])) as file:
             value = file.readlines()[1].split('t=')[-1]
             return float(value) / 1000
+
+    def read_temperature(self, index):
+        return self._workers.submit(self._read_temperature, index)
+
+    def shutdown(self):
+        GPIO.cleanup()
+        self._workers.shutdown()

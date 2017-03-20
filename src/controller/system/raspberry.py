@@ -1,35 +1,33 @@
-import atexit
-from concurrent.futures import ThreadPoolExecutor
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    class GPIO:
+        HIGH = object()
+        LOW = object()
 
-import RPi.GPIO as GPIO
+        @staticmethod
+        def output(pin, state):
+            pass
 
-from system import SystemBase
+
+RELAY_PIN_NUMBER = 32
 
 
-class RaspberrySystem(SystemBase):
-    RELAY_PIN_NUMBER = 32
-
+class Raspberry:
     def __init__(self):
         with open('/sys/devices/w1_bus_master1/w1_master_slaves') as file:
             self._w1_slaves = [line.strip() for line in file.readlines()]
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(RaspberrySystem.RELAY_PIN_NUMBER, GPIO.OUT)
-        self._workers = ThreadPoolExecutor()
+
+    def read_temperatures(self):
+        temperatures = []
+        for slave in self._w1_slaves:
+            with open('/sys/devices/w1_bus_master1/{}/w1_slave'.format(slave)) as file:
+                value = file.readlines()[1].split('t=')[-1]
+                temperatures.append(float(value) / 1000)
+        return temperatures
 
     def set_relay(self, value):
         if value:
-            GPIO.output(RaspberrySystem.RELAY_PIN_NUMBER, GPIO.HIGH)
+            GPIO.output(RELAY_PIN_NUMBER, GPIO.HIGH)
         else:
-            GPIO.output(RaspberrySystem.RELAY_PIN_NUMBER, GPIO.LOW)
-
-    def _read_temperature(self, index):
-        with open('/sys/bus/w1/devices/{}/w1_slave'.format(self._w1_slaves[index])) as file:
-            value = file.readlines()[1].split('t=')[-1]
-            return float(value) / 1000
-
-    def read_temperature(self, index):
-        return self._workers.submit(self._read_temperature, index)
-
-    def shutdown(self):
-        GPIO.cleanup()
-        self._workers.shutdown()
+            GPIO.output(RELAY_PIN_NUMBER, GPIO.LOW)

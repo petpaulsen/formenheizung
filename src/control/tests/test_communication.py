@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import zmq
 import zmq.asyncio
 
-from communication import ZmqServer
+from control.communication import ZmqServer
 
 PORT = 5556
 
@@ -24,7 +24,7 @@ class ZmqServerTest(unittest.TestCase):
         self.socket.close()
         self.loop.close()
 
-    @patch('controller.ControllerBase')
+    @patch('control.controller.ControllerBase')
     def test_communication(self, controller_mock):
         controller_trajectories = []
         async def run_controller(trajectory):

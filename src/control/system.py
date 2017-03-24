@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import AbstractContextManager
 from threading import Event, Lock
 
 try:
@@ -20,7 +21,7 @@ except ImportError:
 RELAY_PIN_NUMBER = 32
 
 
-class Raspberry:
+class Raspberry(AbstractContextManager):
     def __init__(self):
         self._shutdown = False
         self._cancel_event = Event()
@@ -34,6 +35,7 @@ class Raspberry:
         except FileNotFoundError:
             self._w1_slaves = []
             self._current_temperature = []
+            self._executor = None
             self._worker = None
 
     def _read_temperatures(self):
@@ -74,9 +76,13 @@ class Raspberry:
             GPIO.cleanup()
 
             self._cancel_event.set()
-            self._executor.shutdown()
+            if self._executor is not None:
+                self._executor.shutdown()
 
             self._shutdown = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.shutdown()
 
 
 class Relay:

@@ -1,12 +1,13 @@
 import asyncio
 import concurrent.futures
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import zmq
 import zmq.asyncio
 
-from control.communication import ZmqServer
+from communication import ZmqServer
+from tests.helpers import async_test
 
 PORT = 5556
 
@@ -24,7 +25,7 @@ class ZmqServerTest(unittest.TestCase):
         self.socket.close()
         self.loop.close()
 
-    @patch('control.controller.ControllerBase')
+    @patch('controller.ControllerBase')
     def test_communication(self, controller_mock):
         controller_trajectories = []
         async def run_controller(trajectory):
@@ -40,7 +41,6 @@ class ZmqServerTest(unittest.TestCase):
             await self.socket.send_json({'id': 'stop'})
             await self.socket.recv_json()
             await self.socket.send_json({'id': 'shutdown'})
-            await self.socket.recv_json()
 
         async def _test():
             try:
@@ -58,6 +58,31 @@ class ZmqServerTest(unittest.TestCase):
 
         self.assertListEqual(controller_trajectories, [trajectory])
         controller_mock.stop.assert_called_once_with()
+
+    @patch('controller.ControllerBase')
+    def test_unknown_message_id(self, controller_mock):
+        server = ZmqServer(PORT, controller_mock)
+
+        async def _send_receive():
+            await self.socket.send_json({'id': 'invalid_command_id'})
+            return_value = await self.socket.recv_json()
+            await self.socket.send_json({'id': 'shutdown'})
+            await self.socket.recv_json()
+            self.assertDictEqual(return_value, {'status': 'error'})
+
+        async def _test():
+            try:
+                await asyncio.wait_for(send_receive_future, timeout=2)
+            except concurrent.futures.TimeoutError:
+                self.fail('Server did not respond. Test timed out.')
+            try:
+                await asyncio.wait_for(server_future, timeout=2)
+            except concurrent.futures.TimeoutError:
+                self.fail('Server was not shut down. Test timed out.')
+
+        server_future = asyncio.ensure_future(server.run(), loop=self.loop)
+        send_receive_future = asyncio.ensure_future(_send_receive(), loop=self.loop)
+        self.loop.run_until_complete(_test())
 
 
 if __name__ == '__main__':

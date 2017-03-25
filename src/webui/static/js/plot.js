@@ -29,8 +29,11 @@ d3.json("measurement", function(error, data) {
 
     var reference = data.reference
     var measurement = data.measurement
-    
-    x.domain([0, d3.max(reference, function(d) { return d.time; })]);
+
+    t_max = d3.max([
+        d3.max(reference, function(d) { return d.time; }),
+        d3.max(measurement, function(d) { return d.time; })])
+    x.domain([0, t_max]);
     y.domain([15, 70]);
     
     svg.append("path")

@@ -58,8 +58,8 @@ def get_measurement():
 
     temperature = 20 * np.ones(len(time))
     reference = pd.DataFrame({
-        'time': time,
-        'temperature': temperature
+        'time': [0, 10, 20, 30],
+        'temperature': [20, 40, 50, 25]
     })
 
     data = {

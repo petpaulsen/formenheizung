@@ -7,12 +7,12 @@ class ControllerBase:
     def __init__(self, raspberry, relay, sample_time):
         self._raspberry = raspberry
         self._relay = relay
-        self._sample_time = sample_time
         self._stop_controller = False
+        self.sample_time = sample_time
 
     async def run(self, trajectory):
         target_trajectory = np.array(trajectory)
-        num_samples = int(target_trajectory[-1][0] / self._sample_time) + 1
+        num_samples = int(target_trajectory[-1][0] / self.sample_time) + 1
 
         try:
             self._stop_controller = False
@@ -23,12 +23,12 @@ class ControllerBase:
                     target_trajectory[:, 0],
                     target_trajectory[:, 1],
                     left=0, right=0)
-                temperature = self._raspberry.read_temperature()
-                command_value = self.calc_command_value(target_temperature, temperature)
+                temperatures = np.max(self._raspberry.read_temperatures())
+                command_value = self.calc_command_value(target_temperature, temperatures)
                 self._relay.step(command_value)
 
-                current_time += self._sample_time
-                await asyncio.sleep(self._sample_time)
+                current_time += self.sample_time
+                await asyncio.sleep(self.sample_time)
 
                 if self._stop_controller:
                     break
@@ -40,3 +40,17 @@ class ControllerBase:
 
     def calc_command_value(self, target_temperature, temperature):
         raise NotImplementedError()
+
+
+class PIController(ControllerBase):
+    def __init__(self, raspberry, relay, sample_time, k_p, k_i):
+        super(PIController, self).__init__(raspberry, relay, sample_time)
+        self.k_p = k_p
+        self.k_i = k_i
+        self._accumulator = 0.0
+
+    def calc_command_value(self, target_temperature, temperature):
+        error = target_temperature - temperature
+        self._accumulator += error * self.sample_time
+        command_value = self.k_p * error + self.k_i * self._accumulator
+        return command_value

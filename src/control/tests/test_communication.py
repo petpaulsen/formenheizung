@@ -6,8 +6,8 @@ from unittest.mock import patch
 import zmq
 import zmq.asyncio
 
-from communication import ZmqServer
-from tests.helpers import async_test
+from control.communication import ZmqServer
+from control.tests.helpers import async_test
 
 PORT = 5556
 
@@ -25,7 +25,7 @@ class ZmqServerTest(unittest.TestCase):
         self.socket.close()
         self.loop.close()
 
-    @patch('controller.ControllerBase')
+    @patch('control.controller.ControllerBase')
     def test_communication(self, controller_mock):
         controller_trajectories = []
         async def run_controller(trajectory):
@@ -59,7 +59,7 @@ class ZmqServerTest(unittest.TestCase):
         self.assertListEqual(controller_trajectories, [trajectory])
         controller_mock.stop.assert_called_once_with()
 
-    @patch('controller.ControllerBase')
+    @patch('control.controller.ControllerBase')
     def test_unknown_message_id(self, controller_mock):
         server = ZmqServer(PORT, controller_mock)
 

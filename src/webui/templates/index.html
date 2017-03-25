@@ -41,6 +41,11 @@
                 <button type="button" class="btn btn-default" onclick="$.post('cmd/start', $('#controller-options').serialize())">Heizung starten</button>
                 <button type="button" class="btn" onclick="$.post('cmd/stop')">Heizung anhalten</button>
             </form>
+            <div class="alert alert-danger" role="alert" id="error_message">
+                <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                <span class="sr-only">Error:</span>
+                Enter a valid email address
+            </div>
         </div>
         <div class="col-md-8">
             <div id="plot"></div>

@@ -8,6 +8,7 @@ class ControllerBase:
         self._raspberry = raspberry
         self._relay = relay
         self._stop_controller = False
+        self._measurement = []
         self.sample_time = sample_time
 
     async def run(self, trajectory):
@@ -15,6 +16,7 @@ class ControllerBase:
         num_samples = int(target_trajectory[-1][0] / self.sample_time) + 1
 
         try:
+            self._measurement = []
             self._stop_controller = False
             current_time = 0.0
             for k in range(num_samples):
@@ -23,9 +25,11 @@ class ControllerBase:
                     target_trajectory[:, 0],
                     target_trajectory[:, 1],
                     left=0, right=0)
-                temperatures = np.max(self._raspberry.read_temperatures())
-                command_value = self.calc_command_value(target_temperature, temperatures)
+                temperature = np.max(self._raspberry.read_temperatures())
+                command_value = self.calc_command_value(target_temperature, temperature)
                 self._relay.step(command_value)
+
+                self._measurement.append((current_time, target_temperature, temperature, command_value))
 
                 current_time += self.sample_time
                 await asyncio.sleep(self.sample_time)
@@ -37,6 +41,9 @@ class ControllerBase:
 
     def stop(self):
         self._stop_controller = True
+
+    def get_measurement(self):
+        return self._measurement
 
     def calc_command_value(self, target_temperature, temperature):
         raise NotImplementedError()

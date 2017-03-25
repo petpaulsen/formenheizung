@@ -8,7 +8,7 @@ var svg = d3.select("div#plot")
    .append("svg")
    //responsive SVG needs these 2 attributes and no width and height attr
    .attr("preserveAspectRatio", "xMinYMin meet")
-   .attr("viewBox", "0 0 600 400")
+   .attr("viewBox", "-50 -30 620 430")
    //class to make it responsive
    .classed("svg-content-responsive", true);
 
@@ -22,48 +22,66 @@ var valueline = d3.line()
     .x(function(d) { return x(d.time); })
     .y(function(d) { return y(d.temperature); });
 
-d3.json("measurement", function(error, data) {
-    if (error) {
-        return;
-    }
+svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height + margin.bottom)
+    .style("text-anchor", "middle")
+    .text("Zeit [Minuten]");
 
-    var reference = data.reference
-    var measurement = data.measurement
+svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 0 - margin.left)
+    .attr("x",0 - (height / 2))
+    .attr("dy", "1em")
+    .style("text-anchor", "middle")
+    .text("Temperatur [°C]");
 
-    t_max = d3.max([
-        d3.max(reference, function(d) { return d.time; }),
-        d3.max(measurement, function(d) { return d.time; })])
-    x.domain([0, t_max]);
-    y.domain([15, 70]);
-    
-    svg.append("path")
-        .attr("class", "measurement")
-        .attr("d", valueline(measurement));
-        
-    svg.append("path")
-        .attr("class", "reference")
-        .attr("d", valueline(reference));
-    
-    svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
-        .call(xAxis);
+x.domain([0, 10]);
+y.domain([15, 70]);
 
-    svg.append("g")
-        .attr("class", "y axis")
-        .call(yAxis);
-        
-    svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", height + margin.bottom)
-        .style("text-anchor", "middle")
-        .text("Zeit [Minuten]");
-        
-    svg.append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 0 - margin.left)
-        .attr("x",0 - (height / 2))
-        .attr("dy", "1em")
-        .style("text-anchor", "middle")
-        .text("Temperatur [°C]");
-});
+svg.append("path")
+    .attr("class", "measurement")
+
+svg.append("path")
+    .attr("class", "reference")
+
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis);
+
+function updateData() {
+    d3.json("measurement", function(error, data) {
+        if (error) {
+            $('#error_message').css({'display': 'block'})
+            return;
+        }
+
+        var reference = data.reference
+        var measurement = data.measurement
+
+        t_max = d3.max([
+            d3.max(reference, function(d) { return d.time; }),
+            d3.max(measurement, function(d) { return d.time; })])
+        x.domain([0, t_max]);
+        y.domain([15, 70]);
+
+        svg.select(".measurement")
+            .attr("d", valueline(measurement));
+
+        svg.select(".reference")
+            .attr("d", valueline(reference));
+
+        svg.select(".x.axis")
+            .call(xAxis);
+
+        svg.select(".y.axis")
+            .call(yAxis);
+    });
+}
+
+setInterval(updateData, 1000);

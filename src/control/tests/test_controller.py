@@ -124,6 +124,23 @@ class ControllerTest(unittest.TestCase):
         )
         self.assertListEqual(relay_mock.step.mock_calls, [call(0.1)] * 3)
 
+    @patch('control.system.Relay')
+    @patch('control.system.Raspberry')
+    @patch('control.controller.ControllerBase.calc_command_value')
+    def test_measurement(self, calc_command_value, raspberry_mock, relay_mock):
+        calc_command_value.return_value = 0.1
+        raspberry_mock.read_temperatures.return_value = [20.0]
+
+        trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+
+        self.loop.run_until_complete(controller.run(trajectory))
+
+        self.assertListEqual(
+            controller.get_measurement(),
+            [(0, 20.0, 20.0, 0.1), (0.1, 30.0, 20.0, 0.1), (0.2, 25.0, 20.0, 0.1)]
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

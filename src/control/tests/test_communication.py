@@ -28,11 +28,15 @@ class ZmqServerTest(unittest.TestCase):
     @patch('control.controller.ControllerBase')
     def test_communication(self, controller_mock):
         controller_trajectories = []
+        received_measurement = []
+        measurement = [[0.0, 30.0, 20.0, 0.0], [1.0, 35.0, 22.0, 0.5]]
+        trajectory = [[0, 10], [1, 18], [2, 25]]
+
         async def run_controller(trajectory):
             controller_trajectories.append(trajectory)
         controller_mock.run = run_controller
+        controller_mock.get_measurement.return_value = measurement
 
-        trajectory = [[0, 10], [1, 18], [2, 25]]
         server = ZmqServer(PORT, controller_mock)
 
         async def _send_receive():
@@ -40,7 +44,10 @@ class ZmqServerTest(unittest.TestCase):
             await self.socket.recv_json()
             await self.socket.send_json({'id': 'stop'})
             await self.socket.recv_json()
+            await self.socket.send_json({'id': 'measurement'})
+            received_measurement.append(await self.socket.recv_json())
             await self.socket.send_json({'id': 'shutdown'})
+            await self.socket.recv_json()
 
         async def _test():
             try:
@@ -57,6 +64,7 @@ class ZmqServerTest(unittest.TestCase):
         self.loop.run_until_complete(_test())
 
         self.assertListEqual(controller_trajectories, [trajectory])
+        self.assertListEqual(received_measurement, [measurement])
         controller_mock.stop.assert_called_once_with()
 
     @patch('control.controller.ControllerBase')

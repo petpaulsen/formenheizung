@@ -20,6 +20,8 @@ class ZmqServer:
                 asyncio.ensure_future(self._controller.run(request['trajectory']))
             elif request['id'] == 'stop':
                 self._controller.stop()
+            elif request['id'] == 'measurement':
+                response = self._controller.get_measurement()
             elif request['id'] == 'shutdown':
                 shutdown = True
             else:

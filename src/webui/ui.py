@@ -1,8 +1,11 @@
 import asyncio
+import json
 
+import numpy as np
+import pandas as pd
 import zmq
 import zmq.asyncio
-from flask import Flask, redirect, url_for, render_template, make_response, abort
+from flask import Flask, redirect, url_for, render_template, jsonify
 
 app = Flask(__name__)
 
@@ -32,50 +35,73 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/start', methods=['POST'])
+@app.route('/cmd/start', methods=['POST'])
 def start():
     send_request({'id': 'start', 'trajectory': trajectory})
     return redirect(url_for('index'))
 
 
-@app.route('/stop', methods=['POST'])
+@app.route('/cmd/stop', methods=['POST'])
 def stop():
     send_request({'id': 'stop'})
     return redirect(url_for('index'))
 
 
-@app.route('/plot')
-def plot():
-    import io
+@app.route('/measurement')
+def get_measurement():
+    time = np.arange(0, 100, 0.125)
+    temperature = 20 + np.random.rand(len(time))
+    measurement = pd.DataFrame({
+        'time': time,
+        'temperature': temperature
+    })
 
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    from matplotlib.figure import Figure
+    temperature = 20 * np.ones(len(time))
+    reference = pd.DataFrame({
+        'time': time,
+        'temperature': temperature
+    })
 
-    measurement = send_request({'id': 'measurement'})
-    target_trajectory = send_request({'id': 'trajectory'})
-    if not measurement or not target_trajectory:
-        abort(404)
-    time, temperature, target_temperature, _ = zip(*measurement)
-    traj_time, traj_temperature = zip(*target_trajectory)
+    data = {
+        'measurement': json.loads(measurement.to_json(orient='records')),
+        'reference': json.loads(reference.to_json(orient='records'))
+    }
 
-    fig = Figure()
-    ax = fig.add_subplot(111)
-    ax.plot(time, temperature, '-')
-    #ax.plot(time, target_temperature, 'r:')
-    ax.plot(traj_time, traj_temperature, 'r:')
-    ax.plot(time[-1], temperature[-1], 'ro')
-    ax.set_xlabel('Zeit [s]')
-    ax.set_ylabel('Temperatur [°C]')
-    ax.grid(True)
-    ax.set_ylim(0, 70)
+    return jsonify(data)
 
-    canvas = FigureCanvas(fig)
-    png_output = io.BytesIO()
-    canvas.print_png(png_output)
 
-    response = make_response(png_output.getvalue())
-    response.headers['Content-Type'] = 'image/png'
-    return response
+# @app.route('/plot')
+# def plot():
+#     import io
+#
+#     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+#     from matplotlib.figure import Figure
+#
+#     measurement = send_request({'id': 'measurement'})
+#     target_trajectory = send_request({'id': 'trajectory'})
+#     if not measurement or not target_trajectory:
+#         abort(404)
+#     time, temperature, target_temperature, _ = zip(*measurement)
+#     traj_time, traj_temperature = zip(*target_trajectory)
+#
+#     fig = Figure()
+#     ax = fig.add_subplot(111)
+#     ax.plot(time, temperature, '-')
+#     #ax.plot(time, target_temperature, 'r:')
+#     ax.plot(traj_time, traj_temperature, 'r:')
+#     ax.plot(time[-1], temperature[-1], 'ro')
+#     ax.set_xlabel('Zeit [s]')
+#     ax.set_ylabel('Temperatur [°C]')
+#     ax.grid(True)
+#     ax.set_ylim(0, 70)
+#
+#     canvas = FigureCanvas(fig)
+#     png_output = io.BytesIO()
+#     canvas.print_png(png_output)
+#
+#     response = make_response(png_output.getvalue())
+#     response.headers['Content-Type'] = 'image/png'
+#     return response
 
 
 if __name__ == '__main__':

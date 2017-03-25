@@ -13,15 +13,19 @@ class ZmqServer:
 
     async def run(self):
         shutdown = False
+        trajectory = []
         while not shutdown:
             request = await self._socket.recv_json()
             response = None
             if request['id'] == 'start':
-                asyncio.ensure_future(self._controller.run(request['trajectory']))
+                trajectory = request['trajectory']
+                asyncio.ensure_future(self._controller.run(trajectory))
             elif request['id'] == 'stop':
                 self._controller.stop()
             elif request['id'] == 'measurement':
                 response = self._controller.get_measurement()
+            elif request['id'] == 'trajectory':
+                response = trajectory
             elif request['id'] == 'shutdown':
                 shutdown = True
             else:

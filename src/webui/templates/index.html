@@ -38,7 +38,7 @@
                         <option>Profil 3</option>
                     </select>
                 </div>
-                <button type="button" class="btn btn-default" onclick="$.post('cmd/start', $('#controller-options').serialize())">Heizung starten</button>
+                <button type="button" class="btn btn-default" onclick="$.post('cmd/start', $('#controller-options').serialize()); updateTrajectory()">Heizung starten</button>
                 <button type="button" class="btn" onclick="$.post('cmd/stop')">Heizung anhalten</button>
             </form>
             <div class="alert alert-danger" role="alert" id="error_message" style="display: none;">

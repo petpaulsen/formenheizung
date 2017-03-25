@@ -66,15 +66,28 @@ def get_measurement():
             'measurement': json.loads(measurement.to_json(orient='records')),
             'reference': json.loads(reference.to_json(orient='records'))
         }
-
-        return jsonify(data)
     else:
         data = {
             'measurement': [],
             'reference': []
         }
+    return jsonify(data)
 
-        return jsonify(data)
+
+@app.route('/trajectory')
+def get_trajectory():
+    #trajectory = jsonify(send_request({'id': 'trajectory'}))
+    if trajectory:
+        time, target_temperature = zip(*trajectory)
+
+        data = pd.DataFrame({
+            'time': time,
+            'temperature': target_temperature
+        })
+        data = json.loads(data.to_json(orient='records'))
+    else:
+        data = []
+    return jsonify(data)
 
 
 if __name__ == '__main__':

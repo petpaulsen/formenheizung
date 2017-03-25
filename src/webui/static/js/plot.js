@@ -54,6 +54,30 @@ svg.append("g")
     .attr("class", "y axis")
     .call(yAxis);
 
+function updateTrajectory() {
+    d3.json("trajectory", function(error, trajectory) {
+        if (error) {
+            $('#error_message').css({'display': 'block'})
+            return;
+        }
+
+        if (trajectory.length == 0) {
+            return;
+        }
+
+        x.domain([0, d3.max(trajectory, function(d) { return d.time; })]);
+
+        svg.select(".reference")
+            .attr("d", valueline(trajectory));
+
+        svg.select(".x.axis")
+            .call(xAxis);
+
+        svg.select(".y.axis")
+            .call(yAxis);
+    });
+}
+
 function updateData() {
     d3.json("measurement", function(error, data) {
         if (error) {
@@ -64,23 +88,12 @@ function updateData() {
         var reference = data.reference
         var measurement = data.measurement
 
-        t_max = d3.max([
-            d3.max(reference, function(d) { return d.time; }),
-            d3.max(measurement, function(d) { return d.time; })])
-        x.domain([0, t_max]);
-        y.domain([15, 70]);
+        if (reference.length == 0 || measurement.length == 0) {
+            return;
+        }
 
         svg.select(".measurement")
             .attr("d", valueline(measurement));
-
-        svg.select(".reference")
-            .attr("d", valueline(reference));
-
-        svg.select(".x.axis")
-            .call(xAxis);
-
-        svg.select(".y.axis")
-            .call(yAxis);
     });
 }
 

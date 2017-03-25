@@ -61,3 +61,29 @@ class PIController(ControllerBase):
         self._accumulator += error * self.sample_time
         command_value = self.k_p * error + self.k_i * self._accumulator
         return command_value
+
+
+class FakeController(ControllerBase):
+    class FakeRaspberry:
+        def __init__(self):
+            self._temperature = 40
+
+        def read_temperatures(self):
+            grad = float(np.random.rand(1)) - .5
+            self._temperature += grad
+            return [self._temperature]
+
+        def set_relay(self, value):
+            pass
+
+    class FakeRelay:
+        def step(self, onoff_ratio):
+            pass
+
+    def __init__(self, raspberry, relay, sample_time):
+        fake_raspberry = FakeController.FakeRaspberry()
+        fake_relay = FakeController.FakeRelay()
+        super(FakeController, self).__init__(fake_raspberry, fake_relay, sample_time)
+
+    def calc_command_value(self, target_temperature, temperature):
+        return float(np.random.rand(1))

@@ -7,7 +7,7 @@ from control.controller import ControllerBase
 from control.system import Relay
 
 
-class TestError(Exception):
+class CommunicationTimeoutError(Exception):
     pass
 
 
@@ -72,7 +72,7 @@ class ControllerTest(unittest.TestCase):
     @patch('control.system.Raspberry')
     @patch('control.controller.ControllerBase.calc_command_value')
     def test_turn_off_relay_when_error(self, calc_command_value, raspberry_mock):
-        calc_command_value.side_effect = TestError()
+        calc_command_value.side_effect = CommunicationTimeoutError()
         raspberry_mock.read_temperatures.return_value = [20.0]
 
         trajectory = [(0, 20.0), (0.1, 40.0)]
@@ -81,7 +81,7 @@ class ControllerTest(unittest.TestCase):
 
         try:
             self.loop.run_until_complete(controller.run(trajectory))
-        except TestError:
+        except CommunicationTimeoutError:
             pass
 
         self.assertEqual(raspberry_mock.set_relay.mock_calls[-1], call(False))

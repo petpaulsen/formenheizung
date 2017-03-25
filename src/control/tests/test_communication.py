@@ -7,7 +7,6 @@ import zmq
 import zmq.asyncio
 
 from control.communication import ZmqServer
-from control.tests.helpers import async_test
 
 PORT = 5556
 

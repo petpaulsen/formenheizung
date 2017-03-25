@@ -8,6 +8,8 @@ except ImportError:
     class GPIO:
         HIGH = object()
         LOW = object()
+        BOARD = object()
+        OUT = object()
 
         @staticmethod
         def output(pin, state):
@@ -15,6 +17,14 @@ except ImportError:
 
         @staticmethod
         def cleanup():
+            pass
+
+        @staticmethod
+        def setmode(mode):
+            pass
+
+        @staticmethod
+        def setup(pin, direction):
             pass
 
 
@@ -37,6 +47,8 @@ class Raspberry(AbstractContextManager):
             self._current_temperature = []
             self._executor = None
             self._worker = None
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(RELAY_PIN_NUMBER, GPIO.OUT)
 
     def _read_temperatures(self):
         temperatures = []

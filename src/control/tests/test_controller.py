@@ -109,7 +109,7 @@ class ControllerTest(unittest.TestCase):
     @patch('control.system.Relay')
     @patch('control.system.Raspberry')
     @patch('control.controller.ControllerBase.calc_command_value')
-    def test_simple_trajectory(self, calc_command_value, raspberry_mock, relay_mock):
+    def test_temperature_calculation(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         raspberry_mock.read_temperatures.return_value = [20.0, 30.0]
 
@@ -140,7 +140,6 @@ class ControllerTest(unittest.TestCase):
             controller.get_measurement(),
             [(0, 20.0, 20.0, 0.1), (0.1, 30.0, 20.0, 0.1), (0.2, 25.0, 20.0, 0.1)]
         )
-
 
 if __name__ == '__main__':
     unittest.main()

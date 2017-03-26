@@ -3,6 +3,7 @@ import asyncio
 import configparser
 import json
 
+import logging
 import pandas as pd
 import zmq
 import zmq.asyncio
@@ -96,11 +97,17 @@ def get_trajectory():
     return jsonify(data)
 
 
+@app.errorhandler(500)
+def internal_error(exception):
+    app.logger.error(exception)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('config')
     parser.add_argument('--http-port', type=int)
     parser.add_argument('--controller-port', type=int)
+    parser.add_argument('--log')
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
@@ -114,4 +121,7 @@ if __name__ == '__main__':
     else:
         http_port = config.getint('webui', 'http_port')
 
+    file_handler = logging.FileHandler(args.log)
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
     app.run(host='0.0.0.0', port=http_port)

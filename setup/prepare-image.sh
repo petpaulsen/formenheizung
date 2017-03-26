@@ -13,12 +13,21 @@ mount -v -o offset=70254592 -t ext4 raspbian.img image
 mount -v -o offset=4194304 -t vfat raspbian.img image/boot
 
 # activate ssh
-touch image/boot/shh
+touch image/boot/ssh
 
 # unmount image
 umount image/boot
 umount image
 
-# show installation message
-echo 'copy image with:'
-echo '    dd bs=4M if=raspbian.img of=/dev/mmcblk0'
+# copy image to sd card
+dd bs=4M if=raspbian.img of=/dev/mmcblk0 status=progress
+
+# create additional partition
+echo "n
+p
+3
+
+
+w
+"|fdisk /dev/mmcblk0
+mkfs.ext3 /dev/mmcblk0p3

@@ -1,10 +1,16 @@
+import argparse
 import asyncio
+import configparser
 import json
 
 import pandas as pd
 import zmq
 import zmq.asyncio
 from flask import Flask, redirect, url_for, render_template, jsonify, abort
+
+
+controller_port = 5556
+
 
 app = Flask(__name__)
 
@@ -14,7 +20,7 @@ def send_request(request):
     asyncio.set_event_loop(loop)
     context = zmq.asyncio.Context()
     socket = context.socket(zmq.REQ)
-    socket.connect("tcp://localhost:5556")
+    socket.connect('tcp://localhost:{}'.format(controller_port))
 
     async def send_and_receive():
         await socket.send_json(request)
@@ -91,4 +97,21 @@ def get_trajectory():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config')
+    parser.add_argument('--http-port', type=int)
+    parser.add_argument('--controller-port', type=int)
+    args = parser.parse_args()
+
+    config = configparser.ConfigParser()
+    config.read(args.config)
+    if args.controller_port is not None:
+        controller_port = args.controller_port
+    else:
+        controller_port = config.getint('controller', 'network_port')
+    if args.http_port is not None:
+        http_port = args.http_port
+    else:
+        http_port = config.getint('webui', 'http_port')
+
+    app.run(host='0.0.0.0', port=http_port)

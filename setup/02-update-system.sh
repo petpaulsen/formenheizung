@@ -74,5 +74,12 @@ alias ro="sudo mount -o remount,ro / ; sudo mount -o remount,ro /boot"
 alias rw="sudo mount -o remount,rw / ; sudo mount -o remount,rw /boot"
 ' | tee --append ~/.bashrc
 
+# configure 1-wire
+sudo modprobe w1-gpio pullup=1
+sudo modprobe w1-therm
+echo '
+dtoverlay=w1-gpio,gpiopin=4
+' | sudo tee --append /boot/config.txt
+
 # reboot
 sudo reboot

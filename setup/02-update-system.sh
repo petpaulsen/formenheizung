@@ -33,8 +33,8 @@ exit 0' | sudo tee /etc/rc.local
 touch /home/pi/run.sh
 echo '#!/bin/sh -e
 
-if [ -f /home/pi/data/run.sh ]; then
-    bash /home/pi/data/run.sh &
+if [ -f /home/pi/data/bin/run.sh ]; then
+    bash /home/pi/data/bin/run.sh &
 fi' | tee /home/pi/run.sh
 chmod a+x /home/pi/run.sh
 

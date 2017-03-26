@@ -1,6 +1,8 @@
 #!/bin/bash
 
-export PYTHONPATH=../src
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-python3 -B -m control ../config.ini &
-python3 -B -m webui ../config.ini &
+export PYTHONPATH=$DIR/../src
+
+python3 -B -m control $DIR/../config.ini &
+python3 -B -m webui $DIR/../config.ini &

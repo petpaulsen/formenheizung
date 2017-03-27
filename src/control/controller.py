@@ -26,7 +26,7 @@ class ControllerBase:
                     target_trajectory[:, 1],
                     left=0, right=0)
                 temperature = np.max(self._raspberry.read_temperatures())
-                command_value = self.calc_command_value(target_temperature, temperature)
+                command_value = self.calc_command_value(current_time, target_temperature, temperature)
                 self._relay.step(command_value)
 
                 self._measurement.append((current_time, target_temperature, temperature, command_value))
@@ -45,7 +45,7 @@ class ControllerBase:
     def get_measurement(self):
         return self._measurement
 
-    def calc_command_value(self, target_temperature, temperature):
+    def calc_command_value(self, time, target_temperature, temperature):
         raise NotImplementedError()
 
 
@@ -56,11 +56,20 @@ class PIController(ControllerBase):
         self.k_i = k_i
         self._accumulator = 0.0
 
-    def calc_command_value(self, target_temperature, temperature):
+    def calc_command_value(self, time, target_temperature, temperature):
         error = target_temperature - temperature
         self._accumulator += error * self.sample_time
         command_value = self.k_p * error + self.k_i * self._accumulator
         return command_value
+
+
+class SystemResponseController(ControllerBase):
+    def __init__(self, raspberry, relay, sample_time, command_value_trajectory):
+        super(SystemResponseController, self).__init__(raspberry, relay, sample_time)
+        self.command_value_trajectory = command_value_trajectory
+
+    def calc_command_value(self, time, target_temperature, temperature):
+        return np.interp(time, self.command_value_trajectory[0], self.command_value_trajectory[1])
 
 
 class FakeController(ControllerBase):
@@ -85,5 +94,5 @@ class FakeController(ControllerBase):
         fake_relay = FakeController.FakeRelay()
         super(FakeController, self).__init__(fake_raspberry, fake_relay, sample_time)
 
-    def calc_command_value(self, target_temperature, temperature):
+    def calc_command_value(self, time, target_temperature, temperature):
         return float(np.random.rand(1))

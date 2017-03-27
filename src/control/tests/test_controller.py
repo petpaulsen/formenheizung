@@ -33,7 +33,7 @@ class ControllerTest(unittest.TestCase):
 
         self.assertListEqual(
             calc_command_value.mock_calls,
-            [call(20.0, 20.0), call(30.0, 20.0), call(25.0, 20.0)]
+            [call(0.0, 20.0, 20.0), call(0.1, 30.0, 20.0), call(0.2, 25.0, 20.0)]
         )
         self.assertListEqual(relay_mock.step.mock_calls, [call(0.1)] * 3)
 
@@ -44,16 +44,20 @@ class ControllerTest(unittest.TestCase):
         calc_command_value.return_value = 0.2
         raspberry_mock.read_temperatures.return_value = [20.0]
 
-        trajectory = [(0, 20.0), (0.4, 40.0)]
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        trajectory = [(0, 20.0), (2, 40.0)]
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=1)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
         self.assertListEqual(
             calc_command_value.mock_calls,
-            [call(20.0, 20.0), call(25.0, 20.0), call(30.0, 20.0), call(35.0, 20.0), call(40.0, 20.0)]
+            [
+                call(0, 20.0, 20.0),
+                call(1, 30.0, 20.0),
+                call(2, 40.0, 20.0),
+            ]
         )
-        self.assertListEqual(relay_mock.step.mock_calls, [call(0.2)] * 5)
+        self.assertListEqual(relay_mock.step.mock_calls, [call(0.2)] * 3)
 
     @patch('control.system.Raspberry')
     @patch('control.controller.ControllerBase.calc_command_value')
@@ -120,7 +124,7 @@ class ControllerTest(unittest.TestCase):
 
         self.assertListEqual(
             calc_command_value.mock_calls,
-            [call(20.0, 30.0), call(30.0, 30.0), call(25.0, 30.0)]
+            [call(0.0, 20.0, 30.0), call(0.1, 30.0, 30.0), call(0.2, 25.0, 30.0)]
         )
         self.assertListEqual(relay_mock.step.mock_calls, [call(0.1)] * 3)
 

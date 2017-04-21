@@ -78,6 +78,18 @@ function updateTrajectory() {
     });
 }
 
+function updateStatus() {
+    d3.json("status", function(error, data) {
+        if (error) {
+            $('#error_message').css({'display': 'block'})
+            return;
+        }
+
+        $('#error_message').css({'display': 'none'})
+        $('#controller_status').text(data)
+    });
+}
+
 function updateData() {
     d3.json("measurement", function(error, data) {
         if (error) {
@@ -97,4 +109,11 @@ function updateData() {
     });
 }
 
-setInterval(updateData, 1000);
+updateStatus();
+updateTrajectory();
+updateData();
+
+setInterval(function() {
+    updateStatus();
+    updateData();
+    }, 1000);

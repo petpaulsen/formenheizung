@@ -4,14 +4,50 @@ from unittest.mock import patch, PropertyMock, call
 import pyfakefs.fake_filesystem_unittest
 import time
 
-from control.system import Raspberry, Relay
-
-GPIO_HIGH = object()
-GPIO_LOW = object()
-RELAY_PIN_NUMBER = 32
+from control.system import Raspberry, Relay, GPIO, RELAY_PIN_NUMBER
 
 
-class RaspberryTest(pyfakefs.fake_filesystem_unittest.TestCase):
+@patch('control.system.GPIO.output')
+class RaspberryRelayTest(unittest.TestCase):
+    def test_set_relay_high(self, gpio_mock):
+        raspberry = Raspberry()
+        raspberry.set_relay(True)
+        gpio_mock.assert_called_once_with(RELAY_PIN_NUMBER, GPIO.HIGH)
+
+    def test_set_relay_low(self, gpio_mock):
+        raspberry = Raspberry()
+        raspberry.set_relay(False)
+        gpio_mock.assert_called_once_with(RELAY_PIN_NUMBER, GPIO.LOW)
+
+
+class RaspberryShutdownTest(unittest.TestCase):
+    @patch('control.system.GPIO.cleanup')
+    def test_gpio_cleanup_is_called_once(self, gpio_mock):
+        raspberry = Raspberry()
+        raspberry.shutdown()
+        raspberry.shutdown()
+        gpio_mock.assert_called_once_with()
+
+    @patch('control.system.GPIO.cleanup')
+    def test_context_manager_calls_cleanup(self, gpio_mock):
+        with Raspberry():
+            pass
+        gpio_mock.assert_called_once_with()
+
+    def test_set_relay_raises_exception_after_shutdown(self):
+        raspberry = Raspberry()
+        raspberry.shutdown()
+        with self.assertRaises(ValueError):
+            raspberry.set_relay(True)
+
+    def test_read_temperature_raises_exception_after_shutdown(self):
+        raspberry = Raspberry()
+        raspberry.shutdown()
+        with self.assertRaises(ValueError):
+            raspberry.read_temperatures()
+
+
+class RaspberryTemperatureTest(pyfakefs.fake_filesystem_unittest.TestCase):
     def setUp(self):
         self.setUpPyfakefs()
         self.fs.CreateFile(
@@ -34,45 +70,10 @@ class RaspberryTest(pyfakefs.fake_filesystem_unittest.TestCase):
         raspberry = Raspberry()
         temperatures = raspberry.read_temperatures()
 
-        self.assertListEqual(temperatures, [19.687, 20.187])
-
-    @patch('control.system.GPIO.HIGH', new_callable=PropertyMock, return_value=GPIO_HIGH)
-    @patch('control.system.GPIO.output')
-    def test_set_relay_high(self, gpio_mock, gpio):
-        raspberry = Raspberry()
-        raspberry.set_relay(True)
-        gpio_mock.assert_called_once_with(RELAY_PIN_NUMBER, GPIO_HIGH)
-
-    @patch('control.system.GPIO.LOW', new_callable=PropertyMock, return_value=GPIO_LOW)
-    @patch('control.system.GPIO.output')
-    def test_set_relay_low(self, gpio_mock, gpio):
-        raspberry = Raspberry()
-        raspberry.set_relay(False)
-        gpio_mock.assert_called_once_with(RELAY_PIN_NUMBER, GPIO_LOW)
-
-    @patch('control.system.GPIO.cleanup')
-    def test_shutdown_gpio_cleanup(self, gpio_mock):
-        raspberry = Raspberry()
-        raspberry.shutdown()
-        gpio_mock.assert_called_once_with()
-
-    @patch('control.system.GPIO.cleanup')
-    def test_calling_methods_after_shutdown(self, gpio_mock):
-        raspberry = Raspberry()
-        raspberry.shutdown()
-        with self.assertRaises(ValueError):
-            raspberry.read_temperatures()
-        with self.assertRaises(ValueError):
-            raspberry.set_relay(True)
-
-    @patch('control.system.GPIO.cleanup')
-    def test_context_manager(self, gpio_mock):
-        with Raspberry():
-            pass
-        gpio_mock.assert_called_once_with()
+        self.assertEqual(temperatures, [19.687, 20.187])
 
 
-class RaspberryNo1WireTest(pyfakefs.fake_filesystem_unittest.TestCase):
+class RaspberryTemperatureNo1WireTest(pyfakefs.fake_filesystem_unittest.TestCase):
     def setUp(self):
         self.setUpPyfakefs()
 
@@ -80,10 +81,10 @@ class RaspberryNo1WireTest(pyfakefs.fake_filesystem_unittest.TestCase):
         raspberry = Raspberry()
         temperatures = raspberry.read_temperatures()
 
-        self.assertListEqual(temperatures, [])
+        self.assertEqual(temperatures, [])
 
 
-class Raspberry1WireConnectionLossTest(pyfakefs.fake_filesystem_unittest.TestCase):
+class RaspberryTemperature1WireConnectionLossTest(pyfakefs.fake_filesystem_unittest.TestCase):
     def setUp(self):
         self.setUpPyfakefs()
         self.fs.CreateFile(
@@ -99,7 +100,7 @@ class Raspberry1WireConnectionLossTest(pyfakefs.fake_filesystem_unittest.TestCas
     def test_connection_loss(self):
         raspberry = Raspberry()
         temperatures = raspberry.read_temperatures()
-        self.assertListEqual(temperatures, [19.687])
+        self.assertEqual(temperatures, [19.687])
 
         while True:
             # The file is accessed asynchronously, so deleting the file may fail, because it is still open.
@@ -115,66 +116,31 @@ class Raspberry1WireConnectionLossTest(pyfakefs.fake_filesystem_unittest.TestCas
             raspberry.read_temperatures()
 
 
-class RelaisTest(unittest.TestCase):
+class RelayTest(unittest.TestCase):
     @patch('control.system.Raspberry')
-    def test_half_onoff(self, raspberry_mock):
-        steps_per_cycle = 5
-
+    def assert_relay_cycle(self, onoff_ratio, expected, steps_per_cycle, raspberry_mock):
         relay = Relay(raspberry_mock, steps_per_cycle)
 
         for k in range(steps_per_cycle):
-            relay.step(.5)
+            relay.step(onoff_ratio)
 
-        expected_calls = [call(True)] * 3 + [call(False)] * 2
-        self.assertListEqual(raspberry_mock.set_relay.mock_calls, expected_calls)
+        expected_calls = [call(value) for value in expected]
+        self.assertEqual(raspberry_mock.set_relay.mock_calls, expected_calls)
 
-    @patch('control.system.Raspberry')
-    def test_all_on(self, raspberry_mock):
-        steps_per_cycle = 5
+    def test_half_onoff(self):
+        self.assert_relay_cycle(.5, [True] * 3 + [False] * 2, 5)
 
-        relay = Relay(raspberry_mock, steps_per_cycle)
+    def test_all_on(self):
+        self.assert_relay_cycle(1, [True] * 5, 5)
 
-        for k in range(steps_per_cycle):
-            relay.step(1)
+    def test_all_off(self):
+        self.assert_relay_cycle(0, [False] * 5, 5)
 
-        expected_calls = [call(True)] * 5
-        self.assertListEqual(raspberry_mock.set_relay.mock_calls, expected_calls)
+    def test_invalid_onoff_ratio(self):
+        self.assert_relay_cycle(2, [True] * 5, 5)
 
-    @patch('control.system.Raspberry')
-    def test_all_off(self, raspberry_mock):
-        steps_per_cycle = 5
-
-        relay = Relay(raspberry_mock, steps_per_cycle)
-
-        for k in range(steps_per_cycle):
-            relay.step(0)
-
-        expected_calls = [call(False)] * 5
-        self.assertListEqual(raspberry_mock.set_relay.mock_calls, expected_calls)
-
-    @patch('control.system.Raspberry')
-    def test_invalid_onoff_ratio(self, raspberry_mock):
-        steps_per_cycle = 5
-
-        relay = Relay(raspberry_mock, steps_per_cycle)
-
-        for k in range(steps_per_cycle):
-            relay.step(2)
-
-        expected_calls = [call(True)] * 5
-        self.assertListEqual(raspberry_mock.set_relay.mock_calls, expected_calls)
-
-    @patch('control.system.Raspberry')
-    def test_invalid_onoff_ratio_negative(self, raspberry_mock):
-        steps_per_cycle = 5
-
-        relay = Relay(raspberry_mock, steps_per_cycle)
-
-        for k in range(steps_per_cycle):
-            relay.step(-1)
-
-        expected_calls = [call(False)] * 5
-        self.assertListEqual(raspberry_mock.set_relay.mock_calls, expected_calls)
+    def test_invalid_onoff_ratio_negative(self):
+        self.assert_relay_cycle(-1, [False] * 5, 5)
 
 
 if __name__ == '__main__':

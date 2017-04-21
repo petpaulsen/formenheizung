@@ -10,6 +10,10 @@ class ControllerBase:
         self._stop_controller = False
         self._measurement = []
         self.sample_time = sample_time
+        self._state = 'standby'
+
+    def get_state(self):
+        return self._state
 
     async def run(self, trajectory):
         target_trajectory = np.array(trajectory)
@@ -19,6 +23,7 @@ class ControllerBase:
             self._measurement = []
             self._stop_controller = False
             current_time = 0.0
+            self._state = 'running'
             for k in range(num_samples):
                 target_temperature = np.interp(
                     current_time,
@@ -38,8 +43,10 @@ class ControllerBase:
                     break
         finally:
             self._raspberry.set_relay(False)
+            self._state = 'standby'
 
     def stop(self):
+        self._state = 'stopping'
         self._stop_controller = True
 
     def get_measurement(self):

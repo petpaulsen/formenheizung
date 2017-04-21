@@ -5,6 +5,7 @@ from unittest.mock import patch, call
 
 from control.controller import ControllerBase
 from control.system import Relay
+from control.tests.helper import async_test
 
 
 class CommunicationTimeoutError(Exception):
@@ -144,6 +145,44 @@ class ControllerTest(unittest.TestCase):
             controller.get_measurement(),
             [(0, 20.0, 20.0, 0.1), (0.1, 30.0, 20.0, 0.1), (0.2, 25.0, 20.0, 0.1)]
         )
+
+    @patch('control.system.Relay')
+    @patch('control.system.Raspberry')
+    @patch('control.controller.ControllerBase.calc_command_value')
+    @async_test
+    async def test_controller_status(self, calc_command_value, raspberry_mock, relay_mock):
+        calc_command_value.return_value = 0.1
+        trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
+
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        self.assertEqual(controller.get_state(), 'standby')
+
+        controller_future = asyncio.ensure_future(controller.run(trajectory))
+        await asyncio.sleep(0)
+        self.assertEqual(controller.get_state(), 'running')
+
+        await controller_future
+        self.assertEqual(controller.get_state(), 'standby')
+
+    @patch('control.system.Relay')
+    @patch('control.system.Raspberry')
+    @patch('control.controller.ControllerBase.calc_command_value')
+    @async_test
+    async def test_controller_status_when_stopped(self, calc_command_value, raspberry_mock, relay_mock):
+        calc_command_value.return_value = 0.1
+        trajectory = [(0, 20.0), (10, 30.0), (20, 25.0)]
+
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        self.assertEqual(controller.get_state(), 'standby')
+
+        controller_future = asyncio.ensure_future(controller.run(trajectory))
+        await asyncio.sleep(0)
+        self.assertEqual(controller.get_state(), 'running')
+
+        controller.stop()
+        self.assertEqual(controller.get_state(), 'stopping')
+        await controller_future
+        self.assertEqual(controller.get_state(), 'standby')
 
 if __name__ == '__main__':
     unittest.main()

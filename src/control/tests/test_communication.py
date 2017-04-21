@@ -1,6 +1,7 @@
 import asyncio
-import concurrent.futures
+import functools
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 
 import zmq
@@ -8,88 +9,105 @@ import zmq.asyncio
 
 from control.communication import ZmqServer
 
-PORT = 5556
+
+def commmunication_test(shutdown=False, timeout=3):
+    def wrap(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with closing(zmq.asyncio.ZMQEventLoop()) as loop, patch('control.controller.ControllerBase') as controller:
+                asyncio.set_event_loop(loop)
+                server = ZmqServer(controller)
+
+                client_context = zmq.asyncio.Context()
+                with client_context.socket(zmq.REQ) as client_socket:
+                    async def client(*client_args, **client_kwargs):
+                        result = await func(*client_args, **client_kwargs)
+                        if shutdown:
+                            await client_socket.send_json({'id': 'shutdown'})
+                            await client_socket.recv_json()
+                        return result
+
+                    client_socket.connect('tcp://localhost:{}'.format(server.port))
+                    tasks = asyncio.gather(server.run(), client(*args, client_socket, controller, **kwargs))
+                    try:
+                        loop.run_until_complete(asyncio.wait_for(tasks, timeout=timeout, loop=loop))
+                    finally:
+                        tasks = asyncio.Task.all_tasks(loop)
+                        if tasks:
+                            for task in tasks:
+                                task.cancel()
+                            loop.run_until_complete(asyncio.wait(tasks))
+        return wrapper
+    return wrap
 
 
 class ZmqServerTest(unittest.TestCase):
+    @commmunication_test()
+    async def test_shutdown(self, socket, controller):
+        await socket.send_json({'id': 'shutdown'})
+        return_value = await socket.recv_json()
+        self.assertEqual(return_value, {'response': 'ok'})
 
-    def setUp(self):
-        self.loop = zmq.asyncio.ZMQEventLoop()
-        asyncio.set_event_loop(self.loop)
-        self.context = zmq.asyncio.Context()
-        self.socket = self.context.socket(zmq.REQ)
-        self.socket.connect('tcp://localhost:{}'.format(PORT))
+    @commmunication_test(shutdown=True)
+    async def test_unknown_message_id_returns_error(self, socket, controller):
+        await socket.send_json({'id': 'invalid_command_id'})
+        return_value = await socket.recv_json()
+        self.assertEqual(return_value, {'response': 'error_unknown_command'})
 
-    def tearDown(self):
-        self.socket.close()
-        self.loop.close()
-
-    @patch('control.controller.ControllerBase')
-    def test_communication(self, controller_mock):
-        controller_trajectories = []
-        received_measurement = []
-        measurement = [[0.0, 30.0, 20.0, 0.0], [1.0, 35.0, 22.0, 0.5]]
+    @commmunication_test(shutdown=True)
+    async def test_start_controller(self, socket, controller):
+        async def coroutine():
+            pass
+        controller.run.return_value = coroutine()
         trajectory = [[0, 10], [1, 18], [2, 25]]
+        await socket.send_json({'id': 'start', 'trajectory': trajectory})
+        result = await socket.recv_json()
+        controller.run.assert_called_once_with(trajectory)
+        self.assertEqual(result, {'response': 'ok'})
 
-        async def run_controller(trajectory):
-            controller_trajectories.append(trajectory)
-        controller_mock.run = run_controller
-        controller_mock.get_measurement.return_value = measurement
+    @commmunication_test(shutdown=True)
+    async def test_stop_controller(self, socket, controller):
+        await socket.send_json({'id': 'stop'})
+        result = await socket.recv_json()
+        controller.stop.assert_called_once_with()
+        self.assertEqual(result, {'response': 'ok'})
 
-        server = ZmqServer(PORT, controller_mock)
+    @commmunication_test(shutdown=True)
+    async def test_get_trajectory_before_controller_is_started(self, socket, controller):
+        await socket.send_json({'id': 'trajectory'})
+        result = await socket.recv_json()
+        self.assertEqual(result, {'response': 'ok', 'trajectory': []})
 
-        async def _send_receive():
-            await self.socket.send_json({'id': 'start', 'trajectory': trajectory})
-            await self.socket.recv_json()
-            await self.socket.send_json({'id': 'stop'})
-            await self.socket.recv_json()
-            await self.socket.send_json({'id': 'measurement'})
-            received_measurement.append(await self.socket.recv_json())
-            await self.socket.send_json({'id': 'shutdown'})
-            await self.socket.recv_json()
+    @commmunication_test(shutdown=True)
+    async def test_get_trajectory_after_controller_is_started(self, socket, controller):
+        async def coroutine():
+            pass
+        controller.run.return_value = coroutine()
+        trajectory = [[0, 10], [1, 18], [2, 25]]
+        await socket.send_json({'id': 'start', 'trajectory': trajectory})
+        await socket.recv_json()
+        await socket.send_json({'id': 'trajectory'})
+        result = await socket.recv_json()
+        self.assertEqual(result, {'response': 'ok', 'trajectory': trajectory})
 
-        async def _test():
-            try:
-                await asyncio.wait_for(send_receive_future, timeout=2)
-            except concurrent.futures.TimeoutError:
-                self.fail('Server did not respond. Test timed out.')
-            try:
-                await asyncio.wait_for(server_future, timeout=2)
-            except concurrent.futures.TimeoutError:
-                self.fail('Server was not shut down. Test timed out.')
+    @commmunication_test(shutdown=True)
+    async def test_get_trajectory_before_controller_is_started(self, socket, controller):
+        measurement = [
+            [0, 10, 20, 0.1],
+            [1, 15, 30, 0.5],
+            [2, 20, 50, 0.2],
+        ]
+        controller.get_measurement.return_value = measurement
+        await socket.send_json({'id': 'measurement'})
+        result = await socket.recv_json()
+        self.assertEqual(result, {'response': 'ok', 'measurement': measurement})
 
-        server_future = asyncio.ensure_future(server.run(), loop=self.loop)
-        send_receive_future = asyncio.ensure_future(_send_receive(), loop=self.loop)
-        self.loop.run_until_complete(_test())
-
-        self.assertListEqual(controller_trajectories, [trajectory])
-        self.assertListEqual(received_measurement, [measurement])
-        controller_mock.stop.assert_called_once_with()
-
-    @patch('control.controller.ControllerBase')
-    def test_unknown_message_id(self, controller_mock):
-        server = ZmqServer(PORT, controller_mock)
-
-        async def _send_receive():
-            await self.socket.send_json({'id': 'invalid_command_id'})
-            return_value = await self.socket.recv_json()
-            await self.socket.send_json({'id': 'shutdown'})
-            await self.socket.recv_json()
-            self.assertDictEqual(return_value, {'status': 'error'})
-
-        async def _test():
-            try:
-                await asyncio.wait_for(send_receive_future, timeout=2)
-            except concurrent.futures.TimeoutError:
-                self.fail('Server did not respond. Test timed out.')
-            try:
-                await asyncio.wait_for(server_future, timeout=2)
-            except concurrent.futures.TimeoutError:
-                self.fail('Server was not shut down. Test timed out.')
-
-        server_future = asyncio.ensure_future(server.run(), loop=self.loop)
-        send_receive_future = asyncio.ensure_future(_send_receive(), loop=self.loop)
-        self.loop.run_until_complete(_test())
+    @commmunication_test(shutdown=True)
+    async def test_status(self, socket, controller):
+        controller.get_state.return_value = 'some_status'
+        await socket.send_json({'id': 'status'})
+        result = await socket.recv_json()
+        self.assertEqual(result, {'response': 'ok', 'status': 'some_status'})
 
 
 if __name__ == '__main__':

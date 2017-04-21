@@ -7,6 +7,11 @@ div#error_message {
     margin-bottom: 1em;
 }
 
+div.controller_status {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
 .svg-container {
     display: inline-block;
     position: relative;

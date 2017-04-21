@@ -1,14 +1,17 @@
 import argparse
 import asyncio
 import configparser
+import io
 import json
-
 import logging
+from datetime import datetime
+from subprocess import run
+from zipfile import ZipFile
+
 import pandas as pd
 import zmq
 import zmq.asyncio
-from flask import Flask, redirect, url_for, render_template, jsonify, abort
-
+from flask import Flask, Response, redirect, url_for, render_template, jsonify, abort, send_file
 
 controller_port = 5556
 
@@ -27,7 +30,7 @@ def send_request(request):
         await socket.send_json(request)
         return await socket.recv_json()
     send_and_receive_task = asyncio.ensure_future(send_and_receive())
-    loop.run_until_complete(asyncio.wait_for(send_and_receive_task, 3))
+    loop.run_until_complete(asyncio.wait_for(send_and_receive_task, timeout=3))
     socket.close()
     loop.close()
     return send_and_receive_task.result()
@@ -39,6 +42,22 @@ trajectory = [(0, 20), (10, 40), (20, 50), (30, 25)]
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/settings')
+def settings():
+    profiles = [
+        ('profile1', 'Profil 1'),
+        ('profile2', 'Profil 2'),
+    ]
+    return render_template('settings.html', profiles=profiles)
+
+
+@app.route('/update')
+def update():
+    run(['git', 'push'], check=True)
+
+    return render_template('update.html')
 
 
 @app.route('/cmd/start', methods=['POST'])
@@ -53,11 +72,32 @@ def stop():
     return redirect(url_for('index'))
 
 
+@app.route('/status')
+def get_status():
+    response = send_request({'id': 'status'})
+    if response['response'] != 'ok':
+        abort(500)
+    else:
+        status_text = {
+            'standby': 'Nicht aktiv',
+            'stopping': 'Wird angehalten...',
+            'running': 'Aktiv'
+        }
+        status = status_text.get(response['status'], response['status'])
+        return jsonify(status)
+
+
 @app.route('/measurement')
 def get_measurement():
+    data = {
+        'measurement': [],
+        'reference': []
+    }
     measurement = send_request({'id': 'measurement'})
-    if measurement:
-        time, target_temperature, temperature, command_value = zip(*measurement)
+    if measurement['response'] != 'ok':
+        abort(500)
+    elif measurement['measurement']:
+        time, target_temperature, temperature, command_value = zip(*measurement['measurement'])
 
         measurement = pd.DataFrame({
             'time': time,
@@ -73,17 +113,12 @@ def get_measurement():
             'measurement': json.loads(measurement.to_json(orient='records')),
             'reference': json.loads(reference.to_json(orient='records'))
         }
-    else:
-        data = {
-            'measurement': [],
-            'reference': []
-        }
     return jsonify(data)
 
 
 @app.route('/trajectory')
 def get_trajectory():
-    #trajectory = jsonify(send_request({'id': 'trajectory'}))
+    trajectory = jsonify(send_request({'id': 'trajectory'}))
     if trajectory:
         time, target_temperature = zip(*trajectory)
 
@@ -95,6 +130,25 @@ def get_trajectory():
     else:
         data = []
     return jsonify(data)
+
+
+@app.route('/snapshot')
+def get_snapshot():
+    measurement = send_request({'id': 'measurement'})
+    trajectory = send_request({'id': 'trajectory'})
+    buffer = io.BytesIO()
+    with ZipFile(buffer, 'w') as zipfile:
+        zipfile.writestr('measurement.json', json.dumps(measurement))
+        zipfile.writestr('trajectory.json', json.dumps(trajectory))
+    filename = datetime.now().strftime('data-%Y%m%d-%H%M%S')
+    return Response(buffer.getvalue(),
+                    mimetype='application/zip',
+                    headers={'Content-Disposition': 'attachment;filename={}.zip'.format(filename)})
+
+
+@app.route('/Profilvorlage.xslx')
+def get_profile_template():
+    return send_file('Profilvorlage.xslx', as_attachment=True)
 
 
 @app.errorhandler(500)
@@ -121,7 +175,8 @@ if __name__ == '__main__':
     else:
         http_port = config.getint('webui', 'http_port')
 
-    file_handler = logging.FileHandler(args.log)
-    file_handler.setLevel(logging.INFO)
-    app.logger.addHandler(file_handler)
+    if args.log is not None:
+        file_handler = logging.FileHandler(args.log)
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
     app.run(host='0.0.0.0', port=http_port)

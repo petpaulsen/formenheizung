@@ -21,7 +21,7 @@ cd ..
 rm Python-3.6.1.tgz
 sudo rm -rf Python-3.6.1
 
-python3 -m pip install --user numpy scipy matplotlib ipython jupyter pandas sympy nose pyzmq flask RPi.GPIO
+python3 -m pip install --user numpy scipy matplotlib ipython jupyter pandas sympy nose pyzmq flask Flask-Bootstrap Flask-Nav RPi.GPIO 
 
 # configure startup script
 echo '#!/bin/sh -e
@@ -80,6 +80,11 @@ sudo modprobe w1-therm
 echo '
 dtoverlay=w1-gpio,gpiopin=4
 ' | sudo tee --append /boot/config.txt
+
+# allow user pi to reboot without sudo
+# add this line below all others and before '#includedir /etc/sudoers.d'
+#     pi ALL = NOPASSWD: /sbin/reboot
+sudo visudo
 
 # reboot
 sudo reboot

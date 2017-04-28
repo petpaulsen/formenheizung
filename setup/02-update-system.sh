@@ -74,17 +74,25 @@ alias ro="sudo mount -o remount,ro / ; sudo mount -o remount,ro /boot"
 alias rw="sudo mount -o remount,rw / ; sudo mount -o remount,rw /boot"
 ' | tee --append ~/.bashrc
 
+# configure wlan
+echo '
+pre-up iw dev wlan0 set power_save off
+post-down iw dev wlan0 set power_save on
+' | sudo tee --append /etc/network/interfaces
+
+echo '
+network={
+    ssid="replace-me-networkname"
+    psk="replace-me-password"
+}
+' | sudo tee --append /etc/wpa_supplicant/wpa_supplicant.conf
+
 # configure 1-wire
 sudo modprobe w1-gpio pullup=1
 sudo modprobe w1-therm
 echo '
 dtoverlay=w1-gpio,gpiopin=4
 ' | sudo tee --append /boot/config.txt
-
-# allow user pi to reboot without sudo
-# add this line below all others and before '#includedir /etc/sudoers.d'
-#     pi ALL = NOPASSWD: /sbin/reboot
-sudo visudo
 
 # reboot
 sudo reboot

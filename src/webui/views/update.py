@@ -1,6 +1,6 @@
 import subprocess
 
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, Response
 
 update = Blueprint(
     'update', __name__,
@@ -35,4 +35,5 @@ def execute():
 
 @update.route('/reboot', methods=['POST'])
 def reboot():
-    subprocess.run(['reboot'])
+    subprocess.run(['sudo', 'reboot'])
+    return Response()

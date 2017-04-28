@@ -1,3 +1,6 @@
 numpy
 pyzmq
 pyfakefs
+Flask
+Flask-Bootstrap
+Flask-Nav

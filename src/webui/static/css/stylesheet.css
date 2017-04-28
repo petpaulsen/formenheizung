@@ -40,6 +40,13 @@ path.reference {
     stroke-dasharray: 5,5
 }
 
+path.preview {
+    stroke: blue;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 3,3
+}
+
 .axis path,
 .axis line {
     fill: none;

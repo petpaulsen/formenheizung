@@ -1,35 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Formenheizung</title>
+{% extends "base.html" %}
 
-    <link href="static/css/bootstrap.min.css" rel="stylesheet">
-    <link href="static/css/stylesheet.css" rel="stylesheet">
+{% block small_content %}
+<h3>System aktualisieren</h3>
 
-    <script type="text/javascript" src="static/js/d3.min.js"></script>
+<div class="collapse in" id="update-start">
+    <p>Aktuelle Version: {{current_version}}</p>
+    <div class="alert alert-warning" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+        Während des Aktualisierungsvorgangs darf die Stromversorgung nicht getrennt werden.
+    </div>
+    <button type="button" class="btn btn-default" onclick="updateStatus()">Aktualisierung durchführen</button>
+</div>
 
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-</head>
-<body>
-<div>
-    <div class="row">
-        <div class="col-md-2">
-            <p>Aktualisierung ist abgeschlossen</p>
-            <p><a href="/">Zurück</a></p>
+<div class="collapse" id="update-progress">
+    <p>Aktualisierung wird durchgeführt...</p>
+    <div class="alert alert-warning" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+        Die Stromversorgung darf nicht getrennt werden.
+    </div>
+    <div class="progress progress-striped active">
+        <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
         </div>
     </div>
 </div>
 
-<script src="static/js/jquery-3.2.0.min.js"></script>
-<script src="static/js/bootstrap.min.js"></script>
-</body>
-</html>
+<div class="collapse" id="update-failure">
+    <div class="alert alert-danger" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        Es ist ein Fehler aufgetreten.
+    </div>
+    <div id="update-failure-message-details" class="collapse in">
+        <p>Fehlerausgabe:</p>
+        <pre id="update-failure-message-stderr" class="pre-scrollable"></pre>
+        <p>Ausgabe:</p>
+        <pre id="update-failure-message-stdout" class="pre-scrollable"></pre>
+    </div>
+</div>
+
+<div class="collapse" id="update-success">
+    <div class="alert alert-success" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        Aktualisierung ist abgeschlossen. Das System wird nun neu gestartet.
+    </div>
+    <p>
+        <span class="glyphicon glyphicon-plus"></span>
+        <a role="button" data-toggle="collapse" href="#update-success-message-details">
+          Details
+        </a>
+    </p>
+    <div id="update-success-message-details" class="collapse">
+        <pre id="update-success-message" class="pre-scrollable"></pre>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+function updateStatus() {
+    $('#update-progress').on('shown.bs.collapse', function () {
+        d3.json("execute", function(error, data) {
+            $("#update-progress").collapse('hide');
+            if (error) {
+                $("#update-failure").collapse('show');
+            }
+            else if (data.returncode != 0) {
+                $("#update-failure-message-stderr").text(data.stderr);
+                $("#update-failure-message-stdout").text(data.stdout);
+                $("#update-failure").collapse('show');
+            }
+            else {
+                $("#update-success-message").text(data.stdout);
+                $("#update-success").collapse('show');
+
+                setTimeout(function() {
+                    $.post('reboot');
+                }, 1000);
+            }
+        });
+    })
+
+    $("#update-start").collapse('hide');
+    $("#update-progress").collapse('show');
+};
+</script>
+{{super()}}
+{% endblock %}

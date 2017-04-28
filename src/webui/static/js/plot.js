@@ -45,6 +45,9 @@ svg.append("path")
 svg.append("path")
     .attr("class", "reference")
 
+svg.append("path")
+    .attr("class", "preview")
+
 svg.append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(0," + height + ")")
@@ -55,9 +58,9 @@ svg.append("g")
     .call(yAxis);
 
 function updateTrajectory() {
-    d3.json("trajectory", function(error, trajectory) {
+    d3.json("/controller/trajectory", function(error, trajectory) {
         if (error) {
-            $('#error_message').css({'display': 'block'})
+            $("#error_message").collapse("show")
             return;
         }
 
@@ -78,22 +81,46 @@ function updateTrajectory() {
     });
 }
 
-function updateStatus() {
-    d3.json("status", function(error, data) {
+function previewTrajectory() {
+    d3.json("/plot/trajectory-preview?" + $("#controller-options").serialize(), function(error, trajectory) {
         if (error) {
-            $('#error_message').css({'display': 'block'})
+            $("#error_message").collapse("show")
             return;
         }
 
-        $('#error_message').css({'display': 'none'})
-        $('#controller_status').text(data)
+        if (trajectory.length == 0) {
+            return;
+        }
+
+        x.domain([0, d3.max(trajectory, function(d) { return d.time; })]);
+
+        svg.select(".preview")
+            .attr("d", valueline(trajectory));
+
+        svg.select(".x.axis")
+            .call(xAxis);
+
+        svg.select(".y.axis")
+            .call(yAxis);
+    });
+}
+
+function updateStatus() {
+    d3.json("/controller/status", function(error, data) {
+        if (error) {
+            $("#error_message").collapse("show")
+            return;
+        }
+
+        $("#error_message").collapse("hide")
+        $("#controller_status").text(data)
     });
 }
 
 function updateData() {
-    d3.json("measurement", function(error, data) {
+    d3.json("/controller/measurement", function(error, data) {
         if (error) {
-            $('#error_message').css({'display': 'block'})
+            $("#error_message").collapse("show")
             return;
         }
 
@@ -111,6 +138,7 @@ function updateData() {
 
 updateStatus();
 updateTrajectory();
+previewTrajectory();
 updateData();
 
 setInterval(function() {

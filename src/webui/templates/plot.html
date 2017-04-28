@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-2">
+        <form id="controller-options">
+            <div class="form-group">
+                <label for="temperatureprofile">Temperaturprofil</label>
+                <select id="temperatureprofile" name="temperatureprofile" class="form-control" onchange="previewTrajectory()">
+                    {% for profile_id, profile_name in profiles %}
+                    <option value="{{profile_id}}">{{profile_name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button id="controller-start" type="button" class="btn btn-default" onclick="startController()">Heizung starten</button>
+                <button id="controller-stop" type="button" class="btn btn-default" onclick="stopController()" disabled="disabled">Heizung anhalten</button>
+            </div>
+            <div class="form-group">
+                <a class="btn btn-default" href="/controller/snapshot" role="button">Messung speichern</a>
+            </div>
+        </form>
+        <div class="controller_status">
+            <label for="controller_status">Status:</label>
+            <span id="controller_status">Verbindung wird aufgebaut...</span>
+        </div>
+        <div class="alert alert-danger collapse" role="alert" id="error_message">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            Es konnte keine Verbindung zum Regler hergestellt werden.
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div id="plot"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script type="text/javascript" src="/static/js/plot.js"></script>
+<script type="text/javascript">
+function startController() {
+    $.post('/controller/start', $('#controller-options').serialize())
+
+    $("#temperatureprofile").prop("disabled", true);
+    $("#controller-start").prop("disabled", true);
+    $("#controller-stop").prop("disabled", false);
+
+    updateTrajectory();
+    updateStatus();
+}
+
+function stopController() {
+    $("#temperatureprofile").prop("disabled", false);
+    $("#controller-start").prop("disabled", false);
+    $("#controller-stop").prop("disabled", true);
+
+    $.post('/controller/stop');
+}
+</script>
+{% endblock %}

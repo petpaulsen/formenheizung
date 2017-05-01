@@ -21,7 +21,7 @@ cd ..
 rm Python-3.6.1.tgz
 sudo rm -rf Python-3.6.1
 
-python3 -m pip install --user numpy scipy matplotlib ipython jupyter pandas sympy nose pyzmq flask Flask-Bootstrap Flask-Nav RPi.GPIO 
+python3 -m pip install --user numpy scipy matplotlib ipython jupyter pandas xlrd sympy nose pyzmq flask Flask-Bootstrap Flask-Nav RPi.GPIO
 
 # configure startup script
 echo '#!/bin/sh -e

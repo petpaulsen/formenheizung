@@ -126,3 +126,13 @@ def get_snapshot():
     return Response(buffer.getvalue(),
                     mimetype='application/zip',
                     headers={'Content-Disposition': 'attachment;filename={}.zip'.format(filename)})
+
+
+@controller.route('/temperature')
+def get_temperature():
+    temperatures = send_request({'id': 'temperature'})
+    if temperatures['response'] == 'ok':
+        data = temperatures['temperatures']
+    else:
+        data = []
+    return jsonify(data)

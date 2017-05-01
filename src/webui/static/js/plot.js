@@ -134,6 +134,16 @@ function updateData() {
         svg.select(".measurement")
             .attr("d", valueline(measurement));
     });
+
+    d3.json("/controller/temperature", function(error, data) {
+        console.log('blub');
+        if (error) {
+            return;
+        }
+
+        console.log(data);
+        $("#temperatures").text(data.join(', '));
+    });
 }
 
 updateStatus();

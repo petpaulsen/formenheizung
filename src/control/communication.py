@@ -6,8 +6,9 @@ import zmq.asyncio
 
 
 class ZmqServer:
-    def __init__(self, controller, port=None):
+    def __init__(self, raspberry, controller, port=None):
         self._controller = controller
+        self._raspberry = raspberry
 
         context = zmq.asyncio.Context()
         self._socket = context.socket(zmq.REP)
@@ -39,6 +40,9 @@ class ZmqServer:
                 response = {'response': 'ok', 'measurement': self._controller.get_measurement()}
             elif request['id'] == 'trajectory':
                 response = {'response': 'ok', 'trajectory': trajectory}
+            elif request['id'] == 'temperature':
+                temperatures = self._raspberry.read_temperatures()
+                response = {'response': 'ok', 'temperatures': temperatures}
             elif request['id'] == 'shutdown':
                 logger.info('shutting down controller')
                 response = {'response': 'ok'}

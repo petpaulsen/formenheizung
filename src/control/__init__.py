@@ -44,7 +44,7 @@ def main(config_filename, network_port=None, log_filename=None):
                 controller = SystemResponseController(raspberry, relay, sample_time, command_value_trajectory)
             else:
                 controller = FakeController(raspberry, relay, sample_time)
-            server = ZmqServer(controller, network_port)
+            server = ZmqServer(raspberry, controller, network_port)
             loop.run_until_complete(server.run())
         loop.close()
         logger.info('controller shut down')

@@ -16,7 +16,7 @@ def commmunication_test(shutdown=False, timeout=3):
         def wrapper(*args, **kwargs):
             with closing(zmq.asyncio.ZMQEventLoop()) as loop, patch('control.controller.ControllerBase') as controller:
                 asyncio.set_event_loop(loop)
-                server = ZmqServer(controller)
+                server = ZmqServer(None, controller)
 
                 client_context = zmq.asyncio.Context()
                 with client_context.socket(zmq.REQ) as client_socket:

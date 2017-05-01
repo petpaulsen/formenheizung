@@ -14,7 +14,7 @@ def load_profiles():
     for filename in iglob(os.path.join(profile_directory, '*.xlsx')):
         profileid = os.path.splitext(os.path.basename(filename))[0]
         data = pd.read_excel(filename)
-        time = data.iloc[:, 0].values.tolist()
+        time = data.iloc[:, 0].values.tolist() * 60
         temperature = data.iloc[:, 1].values.tolist()
         trajectory = list(zip(time, temperature))
         profiles[profileid] = Profile(profileid, profileid, trajectory)

@@ -7,6 +7,5 @@ if __name__ == '__main__':
     parser.add_argument('config')
     parser.add_argument('-p', '--port', type=int)
     parser.add_argument('--log')
-    parser.add_argument('--controller')
     args = parser.parse_args()
-    main(args.config, args.port, args.log, args.controller)
+    main(args.config, args.port, args.log)

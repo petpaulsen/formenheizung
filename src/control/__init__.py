@@ -14,7 +14,7 @@ def _to_list(list_str):
     return [float(value) for value in list_str.split(',')]
 
 
-def main(config_filename, network_port=None, log_filename=None, controller=None):
+def main(config_filename, network_port=None, log_filename=None):
     logging.basicConfig(filename=log_filename, filemode='w', level=logging.INFO)
     logger = logging.getLogger('main')
 
@@ -26,17 +26,18 @@ def main(config_filename, network_port=None, log_filename=None, controller=None)
             network_port = config.getint('controller', 'network_port')
         sample_time = config.getfloat('controller', 'sample_time')
         relay_steps_per_cycle = config.getint('controller', 'relay_steps_per_cycle')
+        controller_type = config.get('controller', 'controller_type', fallback=None)
 
         logger.info('initializing controller')
         loop = zmq.asyncio.ZMQEventLoop()
         asyncio.set_event_loop(loop)
         with Raspberry() as raspberry:
             relay = Relay(raspberry, relay_steps_per_cycle)
-            if controller == 'pi':
+            if controller_type == 'pi':
                 k_p = config.getfloat('controller', 'k_p')
                 k_i = config.getfloat('controller', 'k_i')
                 controller = PIController(raspberry, relay, sample_time, k_p, k_i)
-            elif controller == 'sysresponse':
+            elif controller_type == 'sysresponse':
                 command_trajectory_time = _to_list(config.get('sysresponse_controller', 'command_trajectory_time'))
                 command_trajectory_value = _to_list(config.get('sysresponse_controller', 'command_trajectory_value'))
                 command_value_trajectory = (command_trajectory_time, command_trajectory_value)

@@ -78,6 +78,7 @@ def get_measurement():
         abort(500)
     elif measurement['measurement']:
         time, target_temperature, temperature, command_value = zip(*measurement['measurement'])
+        time = [t / 60.0 for t in time]  # convert to minutes
 
         measurement = pd.DataFrame({
             'time': time,
@@ -101,6 +102,7 @@ def get_trajectory():
     trajectory = send_request({'id': 'trajectory'})
     if trajectory['response'] == 'ok' and trajectory['trajectory']:
         time, target_temperature = zip(*trajectory['trajectory'])
+        time = [t / 60.0 for t in time]  # convert to minutes
 
         data = pd.DataFrame({
             'time': time,

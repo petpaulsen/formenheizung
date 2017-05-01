@@ -24,6 +24,7 @@ def trajectory_preview():
     profile = load_profiles()[profile_id]
 
     time, target_temperature = zip(*profile.trajectory)
+    time = [t / 60.0 for t in time]  # convert to minutes
 
     data = pd.DataFrame({
         'time': time,

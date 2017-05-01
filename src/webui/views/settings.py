@@ -22,7 +22,7 @@ def index():
 def profile_import():
     file = request.files['filename']
     filename = secure_filename(file.filename)
-    file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    file.save(os.path.join(current_app.config['PROFILE_DIRECTORY'], filename))
     return redirect(url_for('settings.index'))
 
 
@@ -39,6 +39,6 @@ def profile_export():
     return send_file('temperature-profiles/{}.xlsx'.format(profile_id), as_attachment=True)
 
 
-@settings.route('/Profilvorlage.xslx')
+@settings.route('/Profilvorlage.xlsx')
 def get_profile_template():
-    return send_file('Profilvorlage.xslx', as_attachment=True)
+    return send_file('Profilvorlage.xlsx', as_attachment=True)

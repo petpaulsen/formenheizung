@@ -28,7 +28,7 @@ class ControllerTest(unittest.TestCase):
         raspberry_mock.read_temperatures.return_value = [20.0]
 
         trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
@@ -46,7 +46,7 @@ class ControllerTest(unittest.TestCase):
         raspberry_mock.read_temperatures.return_value = [20.0]
 
         trajectory = [(0, 20.0), (2, 40.0)]
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=1)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=1, shutdown_temperature=60)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
@@ -68,7 +68,7 @@ class ControllerTest(unittest.TestCase):
 
         trajectory = [(0, 20.0), (0.1, 40.0)]
         relay = Relay(raspberry_mock, steps_per_cycle=10)
-        controller = ControllerBase(raspberry_mock, relay, sample_time=0.01)
+        controller = ControllerBase(raspberry_mock, relay, sample_time=0.01, shutdown_temperature=60)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
@@ -82,7 +82,7 @@ class ControllerTest(unittest.TestCase):
 
         trajectory = [(0, 20.0), (0.1, 40.0)]
         relay = Relay(raspberry_mock, steps_per_cycle=10)
-        controller = ControllerBase(raspberry_mock, relay, sample_time=0.01)
+        controller = ControllerBase(raspberry_mock, relay, sample_time=0.01, shutdown_temperature=60)
 
         try:
             self.loop.run_until_complete(controller.run(trajectory))
@@ -96,9 +96,10 @@ class ControllerTest(unittest.TestCase):
     @patch('control.controller.ControllerBase.calc_command_value')
     def test_stop_controller(self, calc_command_value, relay_mock, raspberry_mock):
         calc_command_value.return_value = 0.0
+        raspberry_mock.read_temperatures.return_value = [20.0]
 
         trajectory = [(0, 20.0), (1e9, 40.0)]
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.01)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.01, shutdown_temperature=60)
 
         async def _test():
             controller_future = asyncio.ensure_future(controller.run(trajectory), loop=self.loop)
@@ -119,7 +120,7 @@ class ControllerTest(unittest.TestCase):
         raspberry_mock.read_temperatures.return_value = [20.0, 30.0]
 
         trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
@@ -132,12 +133,27 @@ class ControllerTest(unittest.TestCase):
     @patch('control.system.Relay')
     @patch('control.system.Raspberry')
     @patch('control.controller.ControllerBase.calc_command_value')
+    def test_temperature_shutdown(self, calc_command_value, raspberry_mock, relay_mock):
+        calc_command_value.return_value = 0.1
+        raspberry_mock.read_temperatures.return_value = [70.0]
+
+        trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
+
+        self.loop.run_until_complete(controller.run(trajectory))
+
+        self.assertListEqual(calc_command_value.mock_calls, [])
+        self.assertListEqual(relay_mock.step.mock_calls, [])
+
+    @patch('control.system.Relay')
+    @patch('control.system.Raspberry')
+    @patch('control.controller.ControllerBase.calc_command_value')
     def test_measurement(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         raspberry_mock.read_temperatures.return_value = [20.0]
 
         trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
@@ -153,8 +169,9 @@ class ControllerTest(unittest.TestCase):
     async def test_controller_status(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
+        raspberry_mock.read_temperatures.return_value = [20.0]
 
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
         self.assertEqual(controller.get_state(), 'standby')
 
         controller_future = asyncio.ensure_future(controller.run(trajectory))
@@ -171,8 +188,9 @@ class ControllerTest(unittest.TestCase):
     async def test_controller_status_when_stopped(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         trajectory = [(0, 20.0), (10, 30.0), (20, 25.0)]
+        raspberry_mock.read_temperatures.return_value = [20.0]
 
-        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1)
+        controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
         self.assertEqual(controller.get_state(), 'standby')
 
         controller_future = asyncio.ensure_future(controller.run(trajectory))

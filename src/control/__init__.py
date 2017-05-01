@@ -27,6 +27,7 @@ def main(config_filename, network_port=None, log_filename=None):
         sample_time = config.getfloat('controller', 'sample_time')
         relay_steps_per_cycle = config.getint('controller', 'relay_steps_per_cycle')
         controller_type = config.get('controller', 'controller_type', fallback=None)
+        shutdown_temperature = config.getfloat('controller', 'shutdown_temperature')
 
         logger.info('initializing controller')
         loop = zmq.asyncio.ZMQEventLoop()
@@ -36,12 +37,17 @@ def main(config_filename, network_port=None, log_filename=None):
             if controller_type == 'pi':
                 k_p = config.getfloat('controller', 'k_p')
                 k_i = config.getfloat('controller', 'k_i')
-                controller = PIController(raspberry, relay, sample_time, k_p, k_i)
+                controller = PIController(raspberry, relay, sample_time, k_p, k_i, shutdown_temperature)
             elif controller_type == 'sysresponse':
                 command_trajectory_time = _to_list(config.get('sysresponse_controller', 'command_trajectory_time'))
                 command_trajectory_value = _to_list(config.get('sysresponse_controller', 'command_trajectory_value'))
                 command_value_trajectory = (command_trajectory_time, command_trajectory_value)
-                controller = SystemResponseController(raspberry, relay, sample_time, command_value_trajectory)
+                controller = SystemResponseController(
+                    raspberry,
+                    relay,
+                    sample_time,
+                    command_value_trajectory,
+                    shutdown_temperature)
             else:
                 controller = FakeController(raspberry, relay, sample_time)
             server = ZmqServer(raspberry, controller, network_port)

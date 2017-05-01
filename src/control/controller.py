@@ -4,13 +4,14 @@ import numpy as np
 
 
 class ControllerBase:
-    def __init__(self, raspberry, relay, sample_time):
+    def __init__(self, raspberry, relay, sample_time, shutdown_temperature):
         self._raspberry = raspberry
         self._relay = relay
         self._stop_controller = False
         self._measurement = []
         self.sample_time = sample_time
         self._state = 'standby'
+        self._shutdown_temperature = shutdown_temperature
 
     def get_state(self):
         return self._state
@@ -30,7 +31,11 @@ class ControllerBase:
                     target_trajectory[:, 0],
                     target_trajectory[:, 1],
                     left=0, right=0)
+
                 temperature = np.max(self._raspberry.read_temperatures())
+                if temperature > self._shutdown_temperature:
+                    break
+
                 command_value = self.calc_command_value(current_time, target_temperature, temperature)
                 self._relay.step(command_value)
 
@@ -57,8 +62,8 @@ class ControllerBase:
 
 
 class PIController(ControllerBase):
-    def __init__(self, raspberry, relay, sample_time, k_p, k_i):
-        super(PIController, self).__init__(raspberry, relay, sample_time)
+    def __init__(self, raspberry, relay, sample_time, k_p, k_i, shutdown_temperature):
+        super(PIController, self).__init__(raspberry, relay, sample_time, shutdown_temperature)
         self.k_p = k_p
         self.k_i = k_i
         self._accumulator = 0.0
@@ -71,8 +76,8 @@ class PIController(ControllerBase):
 
 
 class SystemResponseController(ControllerBase):
-    def __init__(self, raspberry, relay, sample_time, command_value_trajectory):
-        super(SystemResponseController, self).__init__(raspberry, relay, sample_time)
+    def __init__(self, raspberry, relay, sample_time, command_value_trajectory, shutdown_temperature):
+        super(SystemResponseController, self).__init__(raspberry, relay, sample_time, shutdown_temperature)
         self.command_value_trajectory = command_value_trajectory
 
     def calc_command_value(self, time, target_temperature, temperature):

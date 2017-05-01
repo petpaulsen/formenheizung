@@ -1,5 +1,6 @@
 import configparser
 import logging
+import os
 
 from flask import Flask
 from flask_bootstrap import Bootstrap
@@ -61,5 +62,7 @@ def main(config_filename, controller_port_=None, http_port=None, log_filename=No
     app.config.from_object(Config(controller_port))
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['PROFILE_DIRECTORY'] = 'src/webui/temperature-profiles'
+    if not os.path.exists(app.config['PROFILE_DIRECTORY']):
+        os.makedirs(app.config['PROFILE_DIRECTORY'])
     app.config['BOOTSTRAP_SERVE_LOCAL'] = True
-    app.run(host='0.0.0.0', port=http_port, debug=False)
+    app.run(host='0.0.0.0', port=http_port, debug=True)

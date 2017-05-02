@@ -53,6 +53,7 @@ class ProfilesTest(pyfakefs.fake_filesystem_unittest.TestCase):
         with webui.app.app_context():
             delete_profile('profile1')
         self.assertFalse(os.path.exists('profiles/profile1.xlsx'))
+        self.assertTrue(os.path.exists('profiles/profile2.xlsx'))
 
     def test_delete_non_existent_profile(self):
         try:

@@ -1,8 +1,8 @@
+import time
 import unittest
-from unittest.mock import patch, PropertyMock, call
+from unittest.mock import patch, call
 
 import pyfakefs.fake_filesystem_unittest
-import time
 
 from control.system import Raspberry, Relay, GPIO, RELAY_PIN_NUMBER
 

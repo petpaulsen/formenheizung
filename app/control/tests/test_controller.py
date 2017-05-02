@@ -5,7 +5,7 @@ from unittest.mock import patch, call
 
 from control.controller import ControllerBase
 from control.system import Relay
-from control.tests.helper import async_test
+from tests.helper import async_test
 
 
 class CommunicationTimeoutError(Exception):

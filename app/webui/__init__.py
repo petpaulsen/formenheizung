@@ -61,7 +61,7 @@ def main(config_filename, controller_port_=None, http_port=None, log_filename=No
         app.logger.addHandler(file_handler)
     app.config.from_object(Config(controller_port))
     app.config['TEMPLATES_AUTO_RELOAD'] = True
-    app.config['PROFILE_DIRECTORY'] = 'src/webui/temperature-profiles'
+    app.config['PROFILE_DIRECTORY'] = 'app/webui/temperature-profiles'
     if not os.path.exists(app.config['PROFILE_DIRECTORY']):
         os.makedirs(app.config['PROFILE_DIRECTORY'])
     app.config['BOOTSTRAP_SERVE_LOCAL'] = True

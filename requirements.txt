@@ -6,3 +6,4 @@ pyfakefs
 Flask
 Flask-Bootstrap
 Flask-Nav
+Flask-Testing

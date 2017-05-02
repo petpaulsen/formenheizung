@@ -1,9 +1,10 @@
 import json
+import os.path
 
 import pandas as pd
 from flask import Blueprint, render_template, jsonify, request
 
-from webui.models.profiles import load_profiles
+from webui.models.profiles import load_profiles, load_profile
 
 plot = Blueprint(
     'plot', __name__,
@@ -14,16 +15,16 @@ plot = Blueprint(
 
 @plot.route('/')
 def index():
-    profiles = [(profile.profile_id, profile.name) for profile in load_profiles().values()]
+    profiles = [(profileid, name) for profileid, (name, _) in load_profiles().items()]
     return render_template('plot.html', profiles=profiles)
 
 
 @plot.route('/trajectory-preview')
 def trajectory_preview():
     profile_id = request.args['temperatureprofile']
-    profile = load_profiles()[profile_id]
+    _, trajectory = load_profile(profile_id)
 
-    time, target_temperature = zip(*profile.trajectory)
+    time, target_temperature = zip(*trajectory)
     time = [t / 60.0 for t in time]  # convert to minutes
 
     data = pd.DataFrame({

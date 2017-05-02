@@ -46,9 +46,9 @@ class ControllerBase:
 
                 if self._stop_controller:
                     break
+            self._state = 'standby'
         finally:
             self._raspberry.set_relay(False)
-            self._state = 'standby'
 
     def stop(self):
         self._state = 'stopping'

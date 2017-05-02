@@ -12,6 +12,9 @@ class CommunicationTimeoutError(Exception):
     pass
 
 
+@patch('control.system.Relay')
+@patch('control.system.Raspberry')
+@patch('control.controller.ControllerBase.calc_command_value')
 class ControllerTest(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
@@ -20,9 +23,6 @@ class ControllerTest(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     def test_simple_trajectory(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         raspberry_mock.read_temperatures.return_value = [20.0]
@@ -38,9 +38,6 @@ class ControllerTest(unittest.TestCase):
         )
         self.assertListEqual(relay_mock.step.mock_calls, [call(0.1)] * 3)
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     def test_trajectory_interpolation(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.2
         raspberry_mock.read_temperatures.return_value = [20.0]
@@ -60,9 +57,7 @@ class ControllerTest(unittest.TestCase):
         )
         self.assertListEqual(relay_mock.step.mock_calls, [call(0.2)] * 3)
 
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
-    def test_turn_off_relay_when_finished(self, calc_command_value, raspberry_mock):
+    def test_turn_off_relay_when_finished(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 1
         raspberry_mock.read_temperatures.return_value = [20.0]
 
@@ -74,9 +69,7 @@ class ControllerTest(unittest.TestCase):
 
         self.assertEqual(raspberry_mock.set_relay.mock_calls[-1], call(False))
 
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
-    def test_turn_off_relay_when_error(self, calc_command_value, raspberry_mock):
+    def test_turn_off_relay_when_error(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.side_effect = CommunicationTimeoutError()
         raspberry_mock.read_temperatures.return_value = [20.0]
 
@@ -91,10 +84,7 @@ class ControllerTest(unittest.TestCase):
 
         self.assertEqual(raspberry_mock.set_relay.mock_calls[-1], call(False))
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
-    def test_stop_controller(self, calc_command_value, relay_mock, raspberry_mock):
+    def test_stop_controller(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.0
         raspberry_mock.read_temperatures.return_value = [20.0]
 
@@ -112,9 +102,6 @@ class ControllerTest(unittest.TestCase):
 
         self.loop.run_until_complete(_test())
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     def test_temperature_calculation(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         raspberry_mock.read_temperatures.return_value = [20.0, 30.0]
@@ -130,24 +117,18 @@ class ControllerTest(unittest.TestCase):
         )
         self.assertListEqual(relay_mock.step.mock_calls, [call(0.1)] * 3)
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     def test_temperature_shutdown(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
-        raspberry_mock.read_temperatures.return_value = [70.0]
+        raspberry_mock.read_temperatures.side_effect = [50.0, 70.0, 50.0]
 
         trajectory = [(0, 20.0), (0.1, 30.0), (0.2, 25.0)]
         controller = ControllerBase(raspberry_mock, relay_mock, sample_time=0.1, shutdown_temperature=60)
 
         self.loop.run_until_complete(controller.run(trajectory))
 
-        self.assertListEqual(calc_command_value.mock_calls, [])
-        self.assertListEqual(relay_mock.step.mock_calls, [])
+        self.assertListEqual(calc_command_value.mock_calls, [call(0.0, 20.0, 50.0)])
+        self.assertListEqual(relay_mock.step.mock_calls, [call(0.1)])
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     def test_measurement(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
         raspberry_mock.read_temperatures.return_value = [20.0]
@@ -162,9 +143,6 @@ class ControllerTest(unittest.TestCase):
             [(0, 20.0, 20.0, 0.1), (0.1, 30.0, 20.0, 0.1), (0.2, 25.0, 20.0, 0.1)]
         )
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     @async_test
     async def test_controller_status(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1
@@ -181,9 +159,6 @@ class ControllerTest(unittest.TestCase):
         await controller_future
         self.assertEqual(controller.get_state(), 'standby')
 
-    @patch('control.system.Relay')
-    @patch('control.system.Raspberry')
-    @patch('control.controller.ControllerBase.calc_command_value')
     @async_test
     async def test_controller_status_when_stopped(self, calc_command_value, raspberry_mock, relay_mock):
         calc_command_value.return_value = 0.1

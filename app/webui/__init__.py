@@ -65,4 +65,4 @@ def main(config_filename, controller_port_=None, http_port=None, log_filename=No
     if not os.path.exists(app.config['PROFILE_DIRECTORY']):
         os.makedirs(app.config['PROFILE_DIRECTORY'])
     app.config['BOOTSTRAP_SERVE_LOCAL'] = True
-    app.run(host='0.0.0.0', port=http_port, debug=False)
+    app.run(host='0.0.0.0', port=http_port, debug=True)

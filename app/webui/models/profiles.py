@@ -21,7 +21,19 @@ def load_profiles():
     return profiles
 
 
+def load_profile(profile_id):
+    profile_directory = current_app.config['PROFILE_DIRECTORY']
+    data = pd.read_excel(os.path.join(profile_directory, profile_id + '.xlsx'))
+    time = (data.iloc[:, 0].values * 60).tolist()
+    temperature = data.iloc[:, 1].values.tolist()
+    trajectory = list(zip(time, temperature))
+    return profile_id, trajectory
+
+
 def delete_profile(profileid):
     profile_directory = current_app.config['PROFILE_DIRECTORY']
-    # TODO: this could potentially delete ANY file, not only the ones in 'temperature-profiles' directory
-    os.remove(os.path.join(profile_directory, '{}.xlsx'.format(profileid)))
+    try:
+        # TODO: this could potentially delete ANY file, not only the ones in 'temperature-profiles' directory
+        os.remove(os.path.join(profile_directory, '{}.xlsx'.format(profileid)))
+    except FileNotFoundError:
+        pass

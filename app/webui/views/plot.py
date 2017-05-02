@@ -1,9 +1,9 @@
 import json
 
 import pandas as pd
-from flask import Blueprint, render_template, jsonify, request, current_app
+from flask import Blueprint, render_template, jsonify, request
 
-from webui.profiles import load_profiles
+from webui.models.profiles import load_profiles
 
 plot = Blueprint(
     'plot', __name__,

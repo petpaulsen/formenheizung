@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, render_template, send_file, request, redirect, url_for, current_app
 from werkzeug.utils import secure_filename
 
-from webui.profiles import load_profiles, delete_profile
+from webui.models.profiles import load_profiles, delete_profile
 
 settings = Blueprint(
     'settings', __name__,

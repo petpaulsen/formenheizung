@@ -1,15 +1,13 @@
-import asyncio
 import io
 import json
 from datetime import datetime
 from zipfile import ZipFile
 
 import pandas as pd
-import zmq
-import zmq.asyncio
-from flask import Blueprint, Response, jsonify, abort, current_app, request
+from flask import Blueprint, Response, jsonify, abort, request
 
-from webui.profiles import load_profiles
+from webui.models.controller import send_request
+from webui.models.profiles import load_profile
 
 controller = Blueprint(
     'controller', __name__,
@@ -18,31 +16,12 @@ controller = Blueprint(
     static_folder='static')
 
 
-def send_request(request):
-    controller_port = current_app.config['CONTROLLER_PORT']
-
-    loop = zmq.asyncio.ZMQEventLoop()
-    asyncio.set_event_loop(loop)
-    context = zmq.asyncio.Context()
-    socket = context.socket(zmq.REQ)
-    socket.connect('tcp://localhost:{}'.format(controller_port))
-
-    async def send_and_receive():
-        await socket.send_json(request)
-        return await socket.recv_json()
-    send_and_receive_task = asyncio.ensure_future(send_and_receive())
-    loop.run_until_complete(asyncio.wait_for(send_and_receive_task, timeout=3))
-    socket.close()
-    loop.close()
-    return send_and_receive_task.result()
-
-
 @controller.route('/start', methods=['POST'])
 def start():
     profile_id = request.form['temperatureprofile']
-    profile = load_profiles()[profile_id]
+    name, trajectory = load_profile(profile_id)
 
-    send_request({'id': 'start', 'trajectory': profile.trajectory})
+    send_request({'id': 'start', 'trajectory': trajectory})
     return Response()
 
 

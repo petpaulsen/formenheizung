@@ -1,9 +1,11 @@
 #!/bin/bash
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOT_DIR=$DIR/..
 
-export PYTHONPATH=$DIR/../src
+export PYTHONPATH=$ROOT_DIR/app
 
-cd $DIR/..
+cd $ROOT_DIR
 
-python3 -B src/run.py --controller-log /tmp/controller.log --webui-log /tmp/webui.log &
+python3 -B -m control config.ini --log /tmp/controller.log &
+python3 -B -m webui config.ini --log /tmp/webui.log &

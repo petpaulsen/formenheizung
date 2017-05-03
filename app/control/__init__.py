@@ -14,9 +14,21 @@ def _to_list(list_str):
     return [float(value) for value in list_str.split(',')]
 
 
+def _configure_logging(log_filename):
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handlers = [logging.StreamHandler()]
+    if log_filename is not None:
+        handlers.append(logging.FileHandler(filename=log_filename, mode='w'))
+    logger = logging.getLogger('control')
+    logger.setLevel(logging.INFO)
+    for handler in handlers:
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    return logger
+
+
 def main(config_filename, network_port=None, log_filename=None):
-    logging.basicConfig(filename=log_filename, filemode='w', level=logging.INFO)
-    logger = logging.getLogger('main')
+    logger = _configure_logging(log_filename)
 
     try:
         config = configparser.ConfigParser()

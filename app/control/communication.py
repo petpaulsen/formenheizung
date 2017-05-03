@@ -4,6 +4,8 @@ import logging
 import zmq
 import zmq.asyncio
 
+logger = logging.getLogger('control.communication')
+
 
 class ZmqServer:
     def __init__(self, raspberry, controller, port=None):
@@ -21,7 +23,6 @@ class ZmqServer:
     async def run(self):
         shutdown = False
         trajectory = []
-        logger = logging.getLogger('communication')
         logger.info('controller initialized, waiting for commands')
         while not shutdown:
             request = await self._socket.recv_json()

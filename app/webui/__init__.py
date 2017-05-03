@@ -55,14 +55,22 @@ def main(config_filename, controller_port_=None, http_port=None, log_filename=No
     if http_port is None:
         http_port = config_parser.getint('webui', 'http_port')
 
+    logger = logging.getLogger()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handlers = [logging.StreamHandler()]
     if log_filename is not None:
-        file_handler = logging.FileHandler(log_filename)
-        file_handler.setLevel(logging.INFO)
-        app.logger.addHandler(file_handler)
+        handlers.append(logging.FileHandler(filename=log_filename, mode='w'))
+    logger.setLevel(logging.INFO)
+    for handler in handlers:
+        handler.setFormatter(formatter)
+        handler.setLevel(logging.INFO)
+        logger.addHandler(handler)
+
     app.config.from_object(Config(controller_port))
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['PROFILE_DIRECTORY'] = 'app/webui/temperature-profiles'
     if not os.path.exists(app.config['PROFILE_DIRECTORY']):
         os.makedirs(app.config['PROFILE_DIRECTORY'])
     app.config['BOOTSTRAP_SERVE_LOCAL'] = True
+
     app.run(host='0.0.0.0', port=http_port, debug=True)

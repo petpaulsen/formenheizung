@@ -21,9 +21,6 @@ def index():
 
 @update.route('/execute')
 def execute():
-    import time
-    time.sleep(3)
-
     proc = subprocess.run(['bash', 'bin/update.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
     response = {
         'returncode': proc.returncode,

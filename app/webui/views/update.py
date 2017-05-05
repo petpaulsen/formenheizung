@@ -1,6 +1,8 @@
 import subprocess
 
-from flask import Blueprint, render_template, jsonify, Response
+from flask import Blueprint, render_template, jsonify, Response, request
+
+from webui.models.update import current_release, list_releases
 
 update = Blueprint(
     'update', __name__,
@@ -11,20 +13,34 @@ update = Blueprint(
 
 @update.route('/')
 def index():
-    proc = subprocess.run(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE, encoding='utf-8')
-    if proc.returncode == 0:
-        current_version = proc.stdout
-    else:
+    current_version = current_release()
+    if current_version is None:
         current_version = '???'
-    return render_template('update.html', current_version=current_version)
+    releases = list_releases()
+    return render_template('update.html', current_version=current_version, releases=releases)
 
 
-@update.route('/execute')
+@update.route('/update')
 def execute():
     import time
     time.sleep(3)
 
     proc = subprocess.run(['bash', 'bin/update.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+    response = {
+        'returncode': proc.returncode,
+        'stdout': proc.stdout,
+        'stderr': proc.stderr
+    }
+    return jsonify(response)
+
+
+@update.route('/revert')
+def revert():
+    version = request.args['version']
+
+    proc = subprocess.run(
+        ['bash', 'bin/revert.sh', version],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
     response = {
         'returncode': proc.returncode,
         'stdout': proc.stdout,

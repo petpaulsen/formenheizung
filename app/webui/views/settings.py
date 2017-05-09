@@ -14,7 +14,7 @@ settings = Blueprint(
 
 @settings.route('/')
 def index():
-    profiles = [(profileid, name) for profileid, (name, _) in load_profiles().items()]
+    profiles = [(profileid, profileid) for profileid, _ in load_profiles().items()]
     return render_template('settings.html', profiles=profiles)
 
 

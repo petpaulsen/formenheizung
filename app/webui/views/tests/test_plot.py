@@ -3,32 +3,23 @@ import os.path
 import unittest
 
 import flask_testing
-import pyfakefs.fake_filesystem_unittest
 
 import webui
 
 
-class PlotTest(pyfakefs.fake_filesystem_unittest.TestCase, flask_testing.TestCase):
+class PlotTest(flask_testing.TestCase):
 
     def create_app(self):
         webui.app.config['TESTING'] = True
-        webui.app.config['PROFILE_DIRECTORY'] = 'profiles'
+        webui.app.config['PROFILE_DIRECTORY'] = os.path.join(os.path.dirname(__file__))
         return webui.app
 
-    def setUp(self):
-        self.setUpPyfakefs()
-        profile_filename = os.path.join(os.path.dirname(__file__), 'profile.xlsx')
-        self.copyRealFile(profile_filename, 'profiles/profile1.xlsx')
-        self.copyRealFile(profile_filename, 'profiles/profile2.xlsx')
-        self.copyRealFile(profile_filename, 'profiles/profile3.xlsx')
-
-    @unittest.SkipTest  # TODO: templates are not found; skip until problem is solved
     def test_plot(self):
         self.client.get('/plot/')
         self.assertTemplateUsed('plot.html')
 
     def test_trajectory_preview(self):
-        response = self.client.get('/plot/trajectory-preview', query_string={'temperatureprofile': 'profile1'})
+        response = self.client.get('/plot/trajectory-preview', query_string={'temperatureprofile': 'profile'})
         self.assertEqual(
             json.loads(response.data),
             [

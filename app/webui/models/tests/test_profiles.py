@@ -16,13 +16,13 @@ class ProfilesTest(pyfakefs.fake_filesystem_unittest.TestCase):
         self.copyRealFile(profile_filename, 'profiles/profile2.xlsx')
 
         self.trajectory = [
-            (0.0, 20.0),
-            (30.0, 30.0),
-            (300.0, 50.0),
-            (900.0, 60.0),
-            (1200.0, 60.0),
-            (1800.0, 50.0),
-            (3600.0, 20.0),
+            (0.0, 20.0, 'Phase 1'),
+            (30.0, 30.0, 'Phase 2'),
+            (300.0, 50.0, 'Phase 3'),
+            (900.0, 60.0, 'Phase 4'),
+            (1200.0, 60.0, 'Phase 5'),
+            (1800.0, 50.0, 'Phase 6'),
+            (3600.0, 20.0, 'Phase 7'),
         ]
 
         webui.app.config['TESTING'] = True
@@ -32,15 +32,11 @@ class ProfilesTest(pyfakefs.fake_filesystem_unittest.TestCase):
         with webui.app.app_context():
             profiles = load_profiles()
         self.assertEqual(list(profiles.keys()), ['profile1', 'profile2'])
-        self.assertEqual(
-            list(profiles.values()),
-            [('profile1', self.trajectory), ('profile2', self.trajectory)]
-        )
+        self.assertEqual(list(profiles.values()), [self.trajectory, self.trajectory])
 
     def test_load_profile(self):
         with webui.app.app_context():
-            name, trajectory = load_profile('profile1')
-        self.assertEqual(name, 'profile1')
+            trajectory = load_profile('profile1')
         self.assertEqual(trajectory, self.trajectory)
 
     def test_load_non_existent_profile(self):

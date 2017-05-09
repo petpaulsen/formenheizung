@@ -15,16 +15,16 @@ plot = Blueprint(
 
 @plot.route('/')
 def index():
-    profiles = [(profileid, name) for profileid, (name, _) in load_profiles().items()]
+    profiles = [(profileid, profileid) for profileid, _ in load_profiles().items()]
     return render_template('plot.html', profiles=profiles)
 
 
 @plot.route('/trajectory-preview')
 def trajectory_preview():
     profile_id = request.args['temperatureprofile']
-    _, trajectory = load_profile(profile_id)
+    trajectory = load_profile(profile_id)
 
-    time, target_temperature = zip(*trajectory)
+    time, target_temperature, _ = zip(*trajectory)
     time = [t / 60.0 for t in time]  # convert to minutes
 
     data = pd.DataFrame({

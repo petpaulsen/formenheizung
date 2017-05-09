@@ -22,8 +22,8 @@ def load_profile(profile_id):
     data = pd.read_excel(os.path.join(profile_directory, profile_id + '.xlsx'))
     time = (data.iloc[:, 0].values * 60).tolist()
     temperature = data.iloc[:, 1].values.tolist()
-    trajectory = list(zip(time, temperature))
-    return profile_id, trajectory
+    descriptions = data.iloc[:, 2].values.tolist()
+    return list(zip(time, temperature, descriptions))
 
 
 def delete_profile(profileid):

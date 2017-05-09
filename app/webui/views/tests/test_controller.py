@@ -16,7 +16,7 @@ class ControllerTest(unittest.TestCase):
     @patch('webui.views.controller.load_profile')
     @patch('webui.views.controller.send_request')
     def test_controller_start(self, send_request, load_profile):
-        load_profile.return_value = ('Profil 1', [(0.0, 20.0), (60.0, 30.0), (120.0, 25.0)])
+        load_profile.return_value = [(0.0, 20.0), (60.0, 30.0), (120.0, 25.0)]
         self.app.post('/controller/start', data={'temperatureprofile': 'profile1'})
         load_profile.assert_called_with('profile1')
         send_request.assert_called_with({'id': 'start', 'trajectory': [(0.0, 20.0), (60.0, 30.0), (120.0, 25.0)]})

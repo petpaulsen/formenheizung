@@ -7,3 +7,4 @@ Flask
 Flask-Bootstrap
 Flask-Nav
 Flask-Testing
+blinker

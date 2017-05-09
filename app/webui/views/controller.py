@@ -19,7 +19,7 @@ controller = Blueprint(
 @controller.route('/start', methods=['POST'])
 def start():
     profile_id = request.form['temperatureprofile']
-    _, trajectory = load_profile(profile_id)
+    trajectory = load_profile(profile_id)
 
     send_request({'id': 'start', 'trajectory': trajectory})
     return Response()

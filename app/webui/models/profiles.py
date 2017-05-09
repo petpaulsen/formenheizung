@@ -23,7 +23,7 @@ def load_profile(profile_id):
     time = (data.iloc[:, 0].values * 60).tolist()
     temperature = data.iloc[:, 1].values.tolist()
     descriptions = data.iloc[:, 2].values.tolist()
-    return list(zip(time, temperature, descriptions))
+    return [(0.0, 20.0, '')] + list(zip(time, temperature, descriptions))
 
 
 def delete_profile(profileid):

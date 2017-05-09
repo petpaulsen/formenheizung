@@ -16,13 +16,13 @@ class ProfilesTest(pyfakefs.fake_filesystem_unittest.TestCase):
         self.copyRealFile(profile_filename, 'profiles/profile2.xlsx')
 
         self.trajectory = [
-            (0.0, 20.0, 'Phase 1'),
-            (30.0, 30.0, 'Phase 2'),
-            (300.0, 50.0, 'Phase 3'),
-            (900.0, 60.0, 'Phase 4'),
-            (1200.0, 60.0, 'Phase 5'),
-            (1800.0, 50.0, 'Phase 6'),
-            (3600.0, 20.0, 'Phase 7'),
+            (0.0, 20.0, ''),
+            (30.0, 30.0, 'Aufheizen 1'),
+            (300.0, 50.0, 'Aufheizen 2'),
+            (900.0, 60.0, 'Aufheizen 3'),
+            (1200.0, 60.0, 'Halten'),
+            (1800.0, 50.0, 'Abkühlen 1'),
+            (3600.0, 20.0, 'Abkühlen 2'),
         ]
 
         webui.app.config['TESTING'] = True

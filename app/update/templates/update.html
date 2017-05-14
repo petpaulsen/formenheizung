@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block small_content %}
+<h2>System aktualisieren</h2>
+
+<div class="collapse in" id="update-start">
+    <p>Aktuelle Version: {{current_version}}</p>
+    <div class="alert alert-warning" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+        Während des Aktualisierungsvorgangs darf die Stromversorgung nicht getrennt werden.
+    </div>
+    <button type="button" class="btn btn-default" onclick="updateSystem('update')">Aktualisierung durchführen</button>
+
+    <h3>Alte Version wiederherstellen</h3>
+    <form id="revert-version" method="post" action="revert">
+        <div class="form-group">
+            <label for="version">Version</label>
+            <select id="version" name="version" class="form-control">
+                {% for release_name in releases %}
+                <option value="{{release_name}}">{{release_name}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="button" class="btn btn-default" onclick="updateSystem('revert?' + $('#revert-version').serialize())">Version wiederherstellen</button>
+        </div>
+    </form>
+</div>
+
+<div class="collapse" id="update-progress">
+    <p>Aktualisierung wird durchgeführt...</p>
+    <div class="alert alert-warning" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+        Die Stromversorgung darf nicht getrennt werden.
+    </div>
+    <div class="progress progress-striped active">
+        <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+        </div>
+    </div>
+</div>
+
+<div class="collapse" id="update-failure">
+    <div class="alert alert-danger" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        Es ist ein Fehler aufgetreten.
+    </div>
+    <div id="update-failure-message-details" class="collapse in">
+        <p>Fehlerausgabe:</p>
+        <pre id="update-failure-message-stderr" class="pre-scrollable"></pre>
+        <p>Ausgabe:</p>
+        <pre id="update-failure-message-stdout" class="pre-scrollable"></pre>
+    </div>
+</div>
+
+<div class="collapse" id="update-success">
+    <div class="alert alert-success" role="alert">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        Aktualisierung ist abgeschlossen. Das System wird nun neu gestartet.
+    </div>
+    <p>
+        <span class="glyphicon glyphicon-plus"></span>
+        <a role="button" data-toggle="collapse" href="#update-success-message-details">
+          Details
+        </a>
+    </p>
+    <div id="update-success-message-details" class="collapse">
+        <pre id="update-success-message" class="pre-scrollable"></pre>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+function updateSystem(action) {
+    $('#update-progress').on('shown.bs.collapse', function () {
+        d3.json(action, function(error, data) {
+            $("#update-progress").collapse('hide');
+            if (error) {
+                $("#update-failure").collapse('show');
+            }
+            else if (data.returncode != 0) {
+                $("#update-failure-message-stderr").text(data.stderr);
+                $("#update-failure-message-stdout").text(data.stdout);
+                $("#update-failure").collapse('show');
+            }
+            else {
+                $("#update-success-message").text(data.stdout);
+                $("#update-success").collapse('show');
+
+                setTimeout(function() {
+                    $.post('reboot');
+                }, 1000);
+            }
+        });
+    })
+
+    $("#update-start").collapse('hide');
+    $("#update-progress").collapse('show');
+};
+
+</script>
+{{super()}}
+{% endblock %}

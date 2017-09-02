@@ -1,3 +1,4 @@
+import argparse
 import configparser
 import logging
 import os
@@ -45,7 +46,7 @@ class Config:
         self.CONTROLLER_PORT = controller_port
 
 
-def main(config_filename, controller_port_=None, http_port=None, log_filename=None):
+def run(config_filename, controller_port_=None, http_port=None, log_filename=None):
     config_parser = configparser.ConfigParser()
     config_parser.read(config_filename)
     if controller_port_ is not None:
@@ -66,3 +67,16 @@ def main(config_filename, controller_port_=None, http_port=None, log_filename=No
         os.makedirs(app.config['PROFILE_DIRECTORY'])
     app.config['BOOTSTRAP_SERVE_LOCAL'] = True
     app.run(host='0.0.0.0', port=http_port, debug=True)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config')
+    parser.add_argument('--http-port', type=int)
+    parser.add_argument('--controller-port', type=int)
+    parser.add_argument('--log')
+    args = parser.parse_args()
+    run(args.config, args.controller_port, args.http_port, args.log)
+
+if __name__ == '__main__':
+    main()

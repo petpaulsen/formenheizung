@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import configparser
 import logging
@@ -14,7 +15,7 @@ def _to_list(list_str):
     return [float(value) for value in list_str.split(',')]
 
 
-def main(config_filename, network_port=None, log_filename=None):
+def run(config_filename, network_port=None, log_filename=None):
     logging.basicConfig(filename=log_filename, filemode='w', level=logging.INFO)
     logger = logging.getLogger('main')
 
@@ -57,3 +58,16 @@ def main(config_filename, network_port=None, log_filename=None):
     except Exception:
         logger.exception('uncaught exception')
         raise
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config')
+    parser.add_argument('-p', '--port', type=int)
+    parser.add_argument('--log')
+    args = parser.parse_args()
+    run(args.config, args.port, args.log)
+
+
+if __name__ == '__main__':
+    main()

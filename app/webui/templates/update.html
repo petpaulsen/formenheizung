@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block small_content %}
-<h3>System aktualisieren</h3>
+<h2>System aktualisieren</h2>
 
 <div class="collapse in" id="update-start">
     <p>Aktuelle Version: {{current_version}}</p>
@@ -9,7 +9,22 @@
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
         Während des Aktualisierungsvorgangs darf die Stromversorgung nicht getrennt werden.
     </div>
-    <button type="button" class="btn btn-default" onclick="updateStatus()">Aktualisierung durchführen</button>
+    <button type="button" class="btn btn-default" onclick="updateSystem('update')">Aktualisierung durchführen</button>
+
+    <h3>Alte Version wiederherstellen</h3>
+    <form id="revert-version" method="post" action="revert">
+        <div class="form-group">
+            <label for="version">Version</label>
+            <select id="version" name="version" class="form-control">
+                {% for release_hash, release_name in releases %}
+                <option value="{{release_hash}}">{{release_name}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="button" class="btn btn-default" onclick="updateSystem('revert?' + $('#revert-version').serialize())">Version wiederherstellen</button>
+        </div>
+    </form>
 </div>
 
 <div class="collapse" id="update-progress">
@@ -56,9 +71,9 @@
 
 {% block scripts %}
 <script type="text/javascript">
-function updateStatus() {
+function updateSystem(action) {
     $('#update-progress').on('shown.bs.collapse', function () {
-        d3.json("execute", function(error, data) {
+        d3.json(action, function(error, data) {
             $("#update-progress").collapse('hide');
             if (error) {
                 $("#update-failure").collapse('show');
@@ -82,6 +97,7 @@ function updateStatus() {
     $("#update-start").collapse('hide');
     $("#update-progress").collapse('show');
 };
+
 </script>
 {{super()}}
 {% endblock %}
